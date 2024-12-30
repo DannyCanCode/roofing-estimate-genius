@@ -77,24 +77,26 @@ export function EstimateCharts({ isLoading = false }: EstimateChartsProps) {
           <CardTitle>Estimate Status Distribution</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={emptyStatusData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                {emptyStatusData.map((entry, index) => (
-                  <Cell key={entry.name} fill={COLORS[index]} />
-                ))}
-              </Pie>
-              <Tooltip content={<ChartTooltipContent />} />
-            </PieChart>
-          </ResponsiveContainer>
+          <ChartContainer config={chartConfig}>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={emptyStatusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {emptyStatusData.map((entry, index) => (
+                    <Cell key={entry.name} fill={COLORS[index]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<ChartTooltipContent />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartContainer>
         </CardContent>
       </Card>
 
@@ -103,14 +105,16 @@ export function EstimateCharts({ isLoading = false }: EstimateChartsProps) {
           <CardTitle>Monthly Estimates</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={emptyMonthlyData}>
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="estimates" fill="#3b82f6" />
-            </BarChart>
-          </ResponsiveContainer>
+          <ChartContainer config={chartConfig}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={emptyMonthlyData}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="estimates" fill="#3b82f6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartContainer>
         </CardContent>
       </Card>
     </>
