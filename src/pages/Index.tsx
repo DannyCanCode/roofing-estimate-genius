@@ -10,12 +10,35 @@ import { RoofingCategorySelector, RoofingCategory } from "@/components/RoofingCa
 import { processPdfReport, generateEstimate } from "@/services/api";
 import { RoofMeasurements } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 export default function Index() {
   const [measurements, setMeasurements] = useState<RoofMeasurements | null>(null);
   const [profitMargin, setProfitMargin] = useState(25);
   const [selectedCategory, setSelectedCategory] = useState<RoofingCategory | null>(null);
   const { toast } = useToast();
+
+  // Add a test query to verify Supabase connection
+  const testQuery = useQuery({
+    queryKey: ['test-supabase-connection'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('estimates').select('*').limit(1);
+      if (error) {
+        console.error('Supabase connection error:', error);
+        toast({
+          title: "Supabase Connection Status",
+          description: "Connection error: " + error.message,
+          variant: "destructive",
+        });
+        throw error;
+      }
+      toast({
+        title: "Supabase Connection Status",
+        description: "Successfully connected to Supabase!",
+      });
+      return data;
+    },
+  });
 
   const processPdfMutation = useMutation({
     mutationFn: processPdfReport,
