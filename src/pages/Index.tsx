@@ -22,21 +22,31 @@ export default function Index() {
   const testQuery = useQuery({
     queryKey: ['test-supabase-connection'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('estimates').select('*').limit(1);
-      if (error) {
+      try {
+        const { data, error } = await supabase.from('estimates').select('*').limit(1);
+        if (error) {
+          console.error('Supabase connection error:', error);
+          toast({
+            title: "Supabase Connection Status",
+            description: "Connection error: " + error.message,
+            variant: "destructive",
+          });
+          throw error;
+        }
+        toast({
+          title: "Supabase Connection Status",
+          description: "Successfully connected to Supabase!",
+        });
+        return data;
+      } catch (error) {
         console.error('Supabase connection error:', error);
         toast({
           title: "Supabase Connection Status",
-          description: "Connection error: " + error.message,
+          description: "Failed to connect to Supabase. Please check your configuration.",
           variant: "destructive",
         });
         throw error;
       }
-      toast({
-        title: "Supabase Connection Status",
-        description: "Successfully connected to Supabase!",
-      });
-      return data;
     },
   });
 
