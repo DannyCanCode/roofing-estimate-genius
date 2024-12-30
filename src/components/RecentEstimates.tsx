@@ -1,15 +1,5 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Eye, Edit, CheckCircle, Trash2, ArrowUpDown } from "lucide-react";
 import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -17,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { EstimatesTable } from "./estimates/EstimatesTable";
 
 // Start with empty array instead of example data
 const recentEstimates: {
@@ -37,21 +28,6 @@ export function RecentEstimates() {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortAsc, setSortAsc] = useState(false);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Approved":
-        return "bg-green-100 text-green-800";
-      case "Pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "Completed":
-        return "bg-blue-100 text-blue-800";
-      case "Rejected":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   const filteredAndSortedEstimates = recentEstimates
     .filter((estimate) =>
       statusFilter === "All" ? true : estimate.status === statusFilter
@@ -59,7 +35,9 @@ export function RecentEstimates() {
     .sort((a, b) => {
       const multiplier = sortAsc ? 1 : -1;
       if (sortField === "date") {
-        return multiplier * (new Date(b.date).getTime() - new Date(a.date).getTime());
+        return (
+          multiplier * (new Date(b.date).getTime() - new Date(a.date).getTime())
+        );
       }
       if (sortField === "amount") {
         return multiplier * (b.amount - a.amount);
@@ -97,100 +75,12 @@ export function RecentEstimates() {
         </Select>
       </CardHeader>
       <CardContent>
-        {filteredAndSortedEstimates.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No estimates available yet
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleSort("customerName")}
-                    className="flex items-center gap-1"
-                  >
-                    Customer
-                    <ArrowUpDown className="h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleSort("amount")}
-                    className="flex items-center gap-1"
-                  >
-                    Amount
-                    <ArrowUpDown className="h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleSort("date")}
-                    className="flex items-center gap-1"
-                  >
-                    Date
-                    <ArrowUpDown className="h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredAndSortedEstimates.map((estimate) => (
-                <TableRow key={estimate.id}>
-                  <TableCell className="font-medium">
-                    {estimate.customerName}
-                  </TableCell>
-                  <TableCell>${estimate.amount.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(
-                        estimate.status
-                      )}`}
-                    >
-                      {estimate.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>{estimate.roofingType}</TableCell>
-                  <TableCell>{estimate.address}</TableCell>
-                  <TableCell>{estimate.date}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" title="View Details">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" title="Edit Estimate">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Mark as Approved"
-                        className="text-green-600 hover:text-green-700"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Delete"
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <EstimatesTable
+          estimates={filteredAndSortedEstimates}
+          sortField={sortField}
+          sortAsc={sortAsc}
+          onSort={handleSort}
+        />
       </CardContent>
     </Card>
   );
