@@ -6,22 +6,21 @@ import {
 } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 
-const statusData = [
-  { name: "Pending", value: 12 },
-  { name: "Approved", value: 24 },
+const emptyStatusData = [
+  { name: "Pending", value: 0 },
+  { name: "Approved", value: 0 },
 ];
 
-const monthlyData = [
-  { name: "Jan", estimates: 15 },
-  { name: "Feb", estimates: 20 },
-  { name: "Mar", estimates: 25 },
-  { name: "Apr", estimates: 18 },
-  { name: "May", estimates: 22 },
+const emptyMonthlyData = [
+  { name: "Jan", estimates: 0 },
+  { name: "Feb", estimates: 0 },
+  { name: "Mar", estimates: 0 },
+  { name: "Apr", estimates: 0 },
+  { name: "May", estimates: 0 },
 ];
 
 const COLORS = ["#fbbf24", "#22c55e"];
 
-// Chart configuration for styling and customization
 const chartConfig = {
   estimates: {
     label: "Estimates",
@@ -48,7 +47,7 @@ export function EstimateCharts() {
           <ChartContainer className="h-[300px]" config={chartConfig}>
             <PieChart>
               <Pie
-                data={statusData}
+                data={emptyStatusData}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
@@ -56,7 +55,7 @@ export function EstimateCharts() {
                 paddingAngle={5}
                 dataKey="value"
               >
-                {statusData.map((entry, index) => (
+                {emptyStatusData.map((entry, index) => (
                   <Cell key={entry.name} fill={COLORS[index]} />
                 ))}
               </Pie>
@@ -72,7 +71,7 @@ export function EstimateCharts() {
         </CardHeader>
         <CardContent>
           <ChartContainer className="h-[300px]" config={chartConfig}>
-            <BarChart data={monthlyData}>
+            <BarChart data={emptyMonthlyData}>
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip content={<ChartTooltipContent />} />

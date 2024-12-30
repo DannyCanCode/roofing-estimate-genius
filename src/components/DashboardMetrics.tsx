@@ -10,9 +10,9 @@ export function DashboardMetrics() {
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">$45,231.89</div>
+          <div className="text-2xl font-bold">$0.00</div>
           <p className="text-xs text-muted-foreground">
-            +20.1% from last month
+            No estimates yet
           </p>
         </CardContent>
       </Card>
@@ -22,9 +22,9 @@ export function DashboardMetrics() {
           <Clock className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">12</div>
+          <div className="text-2xl font-bold">0</div>
           <p className="text-xs text-muted-foreground">
-            4 require immediate review
+            No pending estimates
           </p>
         </CardContent>
       </Card>
@@ -34,9 +34,9 @@ export function DashboardMetrics() {
           <CheckCircle className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">24</div>
+          <div className="text-2xl font-bold">0</div>
           <p className="text-xs text-muted-foreground">
-            +12 in the last 30 days
+            No approved estimates
           </p>
         </CardContent>
       </Card>
