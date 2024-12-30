@@ -1,4 +1,4 @@
-import { RoofMeasurements, Estimate } from "@/types/estimate";
+import { RoofMeasurements, Estimate, RoofingCategory } from "@/types/estimate";
 
 const API_BASE_URL = "http://localhost:8000/api";
 
@@ -18,16 +18,23 @@ export async function processPdfReport(file: File): Promise<RoofMeasurements> {
   return response.json();
 }
 
-export async function generateEstimate(
-  measurements: RoofMeasurements,
-  profitMargin: number
-): Promise<Estimate> {
+interface GenerateEstimateParams {
+  measurements: RoofMeasurements;
+  profitMargin: number;
+  roofingCategory: RoofingCategory;
+}
+
+export async function generateEstimate({
+  measurements,
+  profitMargin,
+  roofingCategory,
+}: GenerateEstimateParams): Promise<Estimate> {
   const response = await fetch(`${API_BASE_URL}/estimates/generate/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ measurements, profitMargin }),
+    body: JSON.stringify({ measurements, profitMargin, roofingCategory }),
   });
 
   if (!response.ok) {
