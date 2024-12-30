@@ -4,7 +4,12 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface EstimateChartsProps {
+  isLoading?: boolean;
+}
 
 const emptyStatusData = [
   { name: "Pending", value: 0 },
@@ -36,7 +41,35 @@ const chartConfig = {
   },
 };
 
-export function EstimateCharts() {
+export function EstimateCharts({ isLoading = false }: EstimateChartsProps) {
+  if (isLoading) {
+    return (
+      <>
+        <Card>
+          <CardHeader>
+            <CardTitle>Estimate Status Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] flex items-center justify-center">
+              <Skeleton className="w-[300px] h-[300px] rounded-full" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Monthly Estimates</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <Skeleton className="w-full h-full" />
+            </div>
+          </CardContent>
+        </Card>
+      </>
+    );
+  }
+
   return (
     <>
       <Card>
@@ -44,7 +77,7 @@ export function EstimateCharts() {
           <CardTitle>Estimate Status Distribution</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer className="h-[300px]" config={chartConfig}>
+          <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
                 data={emptyStatusData}
@@ -61,7 +94,7 @@ export function EstimateCharts() {
               </Pie>
               <Tooltip content={<ChartTooltipContent />} />
             </PieChart>
-          </ChartContainer>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 
@@ -70,14 +103,14 @@ export function EstimateCharts() {
           <CardTitle>Monthly Estimates</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer className="h-[300px]" config={chartConfig}>
+          <ResponsiveContainer width="100%" height={300}>
             <BarChart data={emptyMonthlyData}>
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip content={<ChartTooltipContent />} />
               <Bar dataKey="estimates" fill="#3b82f6" />
             </BarChart>
-          </ChartContainer>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
     </>
