@@ -21,6 +21,22 @@ const monthlyData = [
 
 const COLORS = ["#fbbf24", "#22c55e"];
 
+// Chart configuration for styling and customization
+const chartConfig = {
+  estimates: {
+    label: "Estimates",
+    color: "#3b82f6",
+  },
+  pending: {
+    label: "Pending",
+    color: "#fbbf24",
+  },
+  approved: {
+    label: "Approved",
+    color: "#22c55e",
+  },
+};
+
 export function EstimateCharts() {
   return (
     <>
@@ -29,7 +45,7 @@ export function EstimateCharts() {
           <CardTitle>Estimate Status Distribution</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer className="h-[300px]">
+          <ChartContainer className="h-[300px]" config={chartConfig}>
             <PieChart>
               <Pie
                 data={statusData}
@@ -44,9 +60,7 @@ export function EstimateCharts() {
                   <Cell key={entry.name} fill={COLORS[index]} />
                 ))}
               </Pie>
-              <ChartTooltip>
-                <ChartTooltipContent />
-              </ChartTooltip>
+              <Tooltip content={<ChartTooltipContent />} />
             </PieChart>
           </ChartContainer>
         </CardContent>
@@ -57,11 +71,11 @@ export function EstimateCharts() {
           <CardTitle>Monthly Estimates</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer className="h-[300px]">
+          <ChartContainer className="h-[300px]" config={chartConfig}>
             <BarChart data={monthlyData}>
               <XAxis dataKey="name" />
               <YAxis />
-              <Tooltip />
+              <Tooltip content={<ChartTooltipContent />} />
               <Bar dataKey="estimates" fill="#3b82f6" />
             </BarChart>
           </ChartContainer>
