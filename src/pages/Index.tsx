@@ -8,7 +8,7 @@ import { RecentEstimates } from "@/components/RecentEstimates";
 import { EstimateCharts } from "@/components/EstimateCharts";
 import { RoofingCategorySelector, RoofingCategory } from "@/components/RoofingCategorySelector";
 import { processPdfReport, generateEstimate } from "@/services/api";
-import { RoofMeasurements, Estimate } from "@/types/estimate";
+import { RoofMeasurements } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Index() {
@@ -37,7 +37,11 @@ export default function Index() {
 
   const estimateQuery = useQuery({
     queryKey: ["estimate", measurements, profitMargin, selectedCategory],
-    queryFn: () => generateEstimate(measurements!, profitMargin, selectedCategory!),
+    queryFn: () => generateEstimate({
+      measurements: measurements!,
+      profitMargin,
+      roofingCategory: selectedCategory!
+    }),
     enabled: !!measurements && !!selectedCategory,
   });
 
