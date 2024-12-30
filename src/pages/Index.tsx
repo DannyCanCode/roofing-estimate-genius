@@ -6,6 +6,7 @@ import { EstimatePreview } from "@/components/EstimatePreview";
 import { DashboardMetrics } from "@/components/DashboardMetrics";
 import { RecentEstimates } from "@/components/RecentEstimates";
 import { EstimateCharts } from "@/components/EstimateCharts";
+import { RoofingCategorySelector, RoofingCategory } from "@/components/RoofingCategorySelector";
 import { processPdfReport, generateEstimate } from "@/services/api";
 import { RoofMeasurements, Estimate } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function Index() {
   const [measurements, setMeasurements] = useState<RoofMeasurements | null>(null);
   const [profitMargin, setProfitMargin] = useState(25);
+  const [selectedCategory, setSelectedCategory] = useState<RoofingCategory | null>(null);
   const { toast } = useToast();
 
   const processPdfMutation = useMutation({
@@ -34,9 +36,9 @@ export default function Index() {
   });
 
   const estimateQuery = useQuery({
-    queryKey: ["estimate", measurements, profitMargin],
-    queryFn: () => generateEstimate(measurements!, profitMargin),
-    enabled: !!measurements,
+    queryKey: ["estimate", measurements, profitMargin, selectedCategory],
+    queryFn: () => generateEstimate(measurements!, profitMargin, selectedCategory!),
+    enabled: !!measurements && !!selectedCategory,
   });
 
   const handleFileUpload = (file: File) => {
@@ -77,39 +79,50 @@ export default function Index() {
 
           <div className="grid gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
-              {!measurements && (
+              <RoofingCategorySelector
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+              />
+              
+              {!selectedCategory ? (
+                <div className="text-center p-8 bg-muted rounded-lg">
+                  <p className="text-muted-foreground">
+                    Please select a roofing type to continue
+                  </p>
+                </div>
+              ) : !measurements ? (
                 <FileUpload
                   onFileAccepted={handleFileUpload}
                   isProcessing={processPdfMutation.isPending}
                 />
-              )}
-
-              {measurements && estimateQuery.data && (
-                <EstimatePreview
-                  items={[
-                    ...estimateQuery.data.materials.map((m) => ({
-                      description: m.name,
-                      quantity: m.quantity,
-                      unit: m.unit,
-                      unitPrice: m.basePrice * (1 + profitMargin / 100),
-                      total: m.basePrice * m.quantity * (1 + profitMargin / 100),
-                    })),
-                    ...estimateQuery.data.labor.map((l) => ({
-                      description: `Labor (${l.pitch})`,
-                      quantity: l.area,
-                      unit: "SQ",
-                      unitPrice: l.rate,
-                      total: l.rate * l.area,
-                    })),
-                  ]}
-                  totalPrice={estimateQuery.data.totalPrice}
-                  onExportPdf={handleExportPdf}
-                />
+              ) : (
+                estimateQuery.data && (
+                  <EstimatePreview
+                    items={[
+                      ...estimateQuery.data.materials.map((m) => ({
+                        description: m.name,
+                        quantity: m.quantity,
+                        unit: m.unit,
+                        unitPrice: m.basePrice * (1 + profitMargin / 100),
+                        total: m.basePrice * m.quantity * (1 + profitMargin / 100),
+                      })),
+                      ...estimateQuery.data.labor.map((l) => ({
+                        description: `Labor (${l.pitch})`,
+                        quantity: l.area,
+                        unit: "SQ",
+                        unitPrice: l.rate,
+                        total: l.rate * l.area,
+                      })),
+                    ]}
+                    totalPrice={estimateQuery.data.totalPrice}
+                    onExportPdf={handleExportPdf}
+                  />
+                )
               )}
             </div>
 
             <div className="space-y-6">
-              {measurements && (
+              {measurements && selectedCategory && (
                 <ProfitMarginSlider
                   value={profitMargin}
                   onChange={setProfitMargin}

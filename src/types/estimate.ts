@@ -27,10 +27,13 @@ export interface EstimateItem {
   total: number;
 }
 
+export type RoofingCategory = "SHINGLE" | "TILE" | "METAL";
+
 export interface Estimate {
   materials: Material[];
   labor: Labor[];
   profitMargin: number;
   totalCost: number;
   totalPrice: number;
+  category: RoofingCategory;
 }
