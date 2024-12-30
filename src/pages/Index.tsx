@@ -3,6 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { FileUpload } from "@/components/FileUpload";
 import { ProfitMarginSlider } from "@/components/ProfitMarginSlider";
 import { EstimatePreview } from "@/components/EstimatePreview";
+import { DashboardMetrics } from "@/components/DashboardMetrics";
+import { RecentEstimates } from "@/components/RecentEstimates";
+import { EstimateCharts } from "@/components/EstimateCharts";
 import { processPdfReport, generateEstimate } from "@/services/api";
 import { RoofMeasurements, Estimate } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
@@ -32,8 +35,7 @@ export default function Index() {
 
   const estimateQuery = useQuery({
     queryKey: ["estimate", measurements, profitMargin],
-    queryFn: () =>
-      generateEstimate(measurements!, profitMargin),
+    queryFn: () => generateEstimate(measurements!, profitMargin),
     enabled: !!measurements,
   });
 
@@ -42,7 +44,6 @@ export default function Index() {
   };
 
   const handleExportPdf = () => {
-    // Implement PDF export functionality
     toast({
       title: "Export Started",
       description: "Your estimate PDF is being generated...",
@@ -51,15 +52,27 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-8">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-              3MG Roofing Estimate Generator
+              3MG Roofing Dashboard
             </h1>
             <p className="mt-2 text-sm text-gray-500">
-              Upload an EagleView report to generate a detailed roofing estimate
+              Generate and manage roofing estimates
             </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <DashboardMetrics />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <EstimateCharts />
+          </div>
+
+          <div className="space-y-6">
+            <RecentEstimates />
           </div>
 
           <div className="grid gap-8 lg:grid-cols-3">
@@ -97,41 +110,10 @@ export default function Index() {
 
             <div className="space-y-6">
               {measurements && (
-                <>
-                  <ProfitMarginSlider
-                    value={profitMargin}
-                    onChange={setProfitMargin}
-                  />
-                  <div className="rounded-lg bg-white p-6 shadow-sm">
-                    <h3 className="text-lg font-medium">Roof Measurements</h3>
-                    <dl className="mt-4 space-y-4">
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">
-                          Total Area
-                        </dt>
-                        <dd className="mt-1 text-2xl font-semibold">
-                          {measurements.totalArea} SQ
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500">
-                          Pitch Breakdown
-                        </dt>
-                        <dd className="mt-2 space-y-1">
-                          {measurements.pitchBreakdown.map((item) => (
-                            <div
-                              key={item.pitch}
-                              className="flex justify-between text-sm"
-                            >
-                              <span>{item.pitch}</span>
-                              <span className="font-medium">{item.area} SQ</span>
-                            </div>
-                          ))}
-                        </dd>
-                      </div>
-                    </dl>
-                  </div>
-                </>
+                <ProfitMarginSlider
+                  value={profitMargin}
+                  onChange={setProfitMargin}
+                />
               )}
             </div>
           </div>
