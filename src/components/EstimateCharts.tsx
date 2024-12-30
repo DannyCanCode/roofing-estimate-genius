@@ -1,15 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
-
-interface EstimateChartsProps {
-  isLoading?: boolean;
-}
+import { StatusDistributionChart } from "./charts/StatusDistributionChart";
+import { MonthlyEstimatesChart } from "./charts/MonthlyEstimatesChart";
 
 const emptyStatusData = [
   { name: "Pending", value: 0 },
@@ -41,82 +31,24 @@ const chartConfig = {
   },
 };
 
+interface EstimateChartsProps {
+  isLoading?: boolean;
+}
+
 export function EstimateCharts({ isLoading = false }: EstimateChartsProps) {
-  if (isLoading) {
-    return (
-      <>
-        <Card>
-          <CardHeader>
-            <CardTitle>Estimate Status Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] flex items-center justify-center">
-              <Skeleton className="w-[300px] h-[300px] rounded-full" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Monthly Estimates</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <Skeleton className="w-full h-full" />
-            </div>
-          </CardContent>
-        </Card>
-      </>
-    );
-  }
-
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Estimate Status Distribution</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig}>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={emptyStatusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {emptyStatusData.map((entry, index) => (
-                    <Cell key={entry.name} fill={COLORS[index]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<ChartTooltipContent />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Monthly Estimates</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig}>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={emptyMonthlyData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="estimates" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </CardContent>
-      </Card>
+      <StatusDistributionChart
+        isLoading={isLoading}
+        data={emptyStatusData}
+        colors={COLORS}
+        config={chartConfig}
+      />
+      <MonthlyEstimatesChart
+        isLoading={isLoading}
+        data={emptyMonthlyData}
+        config={chartConfig}
+      />
     </>
   );
 }
