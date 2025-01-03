@@ -1,1 +1,7 @@
 project_id = "zmddqruzmcbpgblduxqx"
+
+[functions.process-pdf-report]
+verify_jwt = false
+
+[functions.generate-estimate]
+verify_jwt = false
