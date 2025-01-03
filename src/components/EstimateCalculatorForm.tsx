@@ -20,9 +20,13 @@ const PITCH_OPTIONS = [
   "12/12",
 ];
 
+const ROOFING_TYPES = ["SHINGLE", "TILE", "METAL"];
+
 export function EstimateCalculatorForm() {
+  const [roofingType, setRoofingType] = useState<string>("");
   const [pitch, setPitch] = useState<string>("");
   const [totalArea, setTotalArea] = useState<string>("");
+  const [wastePercentage, setWastePercentage] = useState<string>("10"); // Default 10%
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -32,9 +36,10 @@ export function EstimateCalculatorForm() {
 
     try {
       const result = await calculateEstimate({
-        roofing_type: "SHINGLE", // Currently hardcoded for SHINGLE type
+        roofing_type: roofingType,
         pitch,
         total_area: parseFloat(totalArea),
+        waste_percentage: parseFloat(wastePercentage),
       });
 
       toast({
@@ -67,6 +72,22 @@ export function EstimateCalculatorForm() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
+            <label className="text-sm font-medium">Roofing Type</label>
+            <Select value={roofingType} onValueChange={setRoofingType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select roofing type" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROOFING_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <label className="text-sm font-medium">Roof Pitch</label>
             <Select value={pitch} onValueChange={setPitch}>
               <SelectTrigger>
@@ -94,7 +115,23 @@ export function EstimateCalculatorForm() {
             />
           </div>
 
-          <Button type="submit" disabled={isLoading || !pitch || !totalArea}>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Waste Percentage (%)</label>
+            <Input
+              type="number"
+              value={wastePercentage}
+              onChange={(e) => setWastePercentage(e.target.value)}
+              placeholder="Enter waste percentage"
+              min="0"
+              max="100"
+              step="0.1"
+            />
+          </div>
+
+          <Button 
+            type="submit" 
+            disabled={isLoading || !roofingType || !pitch || !totalArea || !wastePercentage}
+          >
             {isLoading ? "Calculating..." : "Calculate Estimate"}
           </Button>
         </form>

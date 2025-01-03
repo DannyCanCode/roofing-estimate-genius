@@ -4,6 +4,7 @@ export interface EstimateRequest {
   roofing_type: string;
   pitch: string;
   total_area: number;
+  waste_percentage?: number; // Added waste percentage field
 }
 
 export interface EstimateResponse {
