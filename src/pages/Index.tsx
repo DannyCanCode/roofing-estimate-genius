@@ -10,6 +10,7 @@ import { RoofingCategorySelector, RoofingCategory } from "@/components/RoofingCa
 import { processPdfReport, generateEstimate } from "@/services/api";
 import { RoofMeasurements } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
+import { EstimateCalculatorForm } from "@/components/EstimateCalculatorForm";
 
 export default function Index() {
   const [measurements, setMeasurements] = useState<RoofMeasurements | null>(null);
@@ -132,6 +133,7 @@ export default function Index() {
                   onChange={setProfitMargin}
                 />
               )}
+              <EstimateCalculatorForm />
             </div>
           </div>
         </div>

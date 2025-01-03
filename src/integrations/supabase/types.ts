@@ -9,7 +9,146 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      estimates: {
+        Row: {
+          created_at: string
+          drip_edge_length: number | null
+          eaves_count: number | null
+          eaves_length: number | null
+          flashing_length: number | null
+          hips_count: number | null
+          hips_length: number | null
+          id: string
+          material_type: string | null
+          notes: string | null
+          predominant_pitch: string | null
+          pricing_details: Json
+          rakes_count: number | null
+          rakes_length: number | null
+          report_id: string
+          ridges_count: number | null
+          ridges_length: number | null
+          status: string
+          step_flashing_length: number | null
+          total_amount: number | null
+          total_penetrations_area: number | null
+          total_roof_area: number | null
+          total_roof_squares: number | null
+          updated_at: string
+          valleys_count: number | null
+          valleys_length: number | null
+          waste_factor_percent: number | null
+        }
+        Insert: {
+          created_at: string
+          drip_edge_length?: number | null
+          eaves_count?: number | null
+          eaves_length?: number | null
+          flashing_length?: number | null
+          hips_count?: number | null
+          hips_length?: number | null
+          id?: string
+          material_type?: string | null
+          notes?: string | null
+          predominant_pitch?: string | null
+          pricing_details?: Json
+          rakes_count?: number | null
+          rakes_length?: number | null
+          report_id: string
+          ridges_count?: number | null
+          ridges_length?: number | null
+          status?: string
+          step_flashing_length?: number | null
+          total_amount?: number | null
+          total_penetrations_area?: number | null
+          total_roof_area?: number | null
+          total_roof_squares?: number | null
+          updated_at: string
+          valleys_count?: number | null
+          valleys_length?: number | null
+          waste_factor_percent?: number | null
+        }
+        Update: {
+          created_at?: string
+          drip_edge_length?: number | null
+          eaves_count?: number | null
+          eaves_length?: number | null
+          flashing_length?: number | null
+          hips_count?: number | null
+          hips_length?: number | null
+          id?: string
+          material_type?: string | null
+          notes?: string | null
+          predominant_pitch?: string | null
+          pricing_details?: Json
+          rakes_count?: number | null
+          rakes_length?: number | null
+          report_id?: string
+          ridges_count?: number | null
+          ridges_length?: number | null
+          status?: string
+          step_flashing_length?: number | null
+          total_amount?: number | null
+          total_penetrations_area?: number | null
+          total_roof_area?: number | null
+          total_roof_squares?: number | null
+          updated_at?: string
+          valleys_count?: number | null
+          valleys_length?: number | null
+          waste_factor_percent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          file_path: string
+          id: string
+          metadata: Json
+          original_filename: string
+          page_count: number | null
+          processed_text: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          file_path: string
+          id?: string
+          metadata: Json
+          original_filename: string
+          page_count?: number | null
+          processed_text?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          file_path?: string
+          id?: string
+          metadata?: Json
+          original_filename?: string
+          page_count?: number | null
+          processed_text?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
