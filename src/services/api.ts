@@ -1,21 +1,21 @@
 import { RoofMeasurements, Estimate, RoofingCategory } from "@/types/estimate";
+import { supabase } from "@/integrations/supabase/client";
 
-const API_BASE_URL = "http://localhost:8000/api";
-
+// Use Supabase Edge Functions URL instead of localhost
 export async function processPdfReport(file: File): Promise<RoofMeasurements> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${API_BASE_URL}/reports/process/`, {
-    method: "POST",
+  const { data, error } = await supabase.functions.invoke('process-pdf-report', {
     body: formData,
   });
 
-  if (!response.ok) {
+  if (error) {
+    console.error('Error processing PDF:', error);
     throw new Error("Failed to process PDF report");
   }
 
-  return response.json();
+  return data;
 }
 
 interface GenerateEstimateParams {
@@ -29,17 +29,14 @@ export async function generateEstimate({
   profitMargin,
   roofingCategory,
 }: GenerateEstimateParams): Promise<Estimate> {
-  const response = await fetch(`${API_BASE_URL}/estimates/generate/`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ measurements, profitMargin, roofingCategory }),
+  const { data, error } = await supabase.functions.invoke('generate-estimate', {
+    body: { measurements, profitMargin, roofingCategory },
   });
 
-  if (!response.ok) {
+  if (error) {
+    console.error('Error generating estimate:', error);
     throw new Error("Failed to generate estimate");
   }
 
-  return response.json();
+  return data;
 }
