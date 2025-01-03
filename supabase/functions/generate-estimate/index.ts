@@ -13,6 +13,15 @@ serve(async (req) => {
 
   try {
     const { measurements, profitMargin, roofingCategory } = await req.json()
+    console.log('Received request:', { measurements, profitMargin, roofingCategory })
+
+    if (!measurements || typeof measurements !== 'object') {
+      throw new Error('Invalid measurements data')
+    }
+
+    // Calculate materials based on total area (safely)
+    const totalArea = measurements.totalArea || 0
+    const pitchBreakdown = measurements.pitchBreakdown || []
 
     // Mock response data structure
     const estimate = {
@@ -21,24 +30,24 @@ serve(async (req) => {
           name: "Standard Shingles",
           basePrice: 25.99,
           unit: "bundle",
-          quantity: Math.ceil(measurements.totalArea / 100) * 3
+          quantity: Math.ceil(totalArea / 100) * 3
         },
         {
           name: "Underlayment",
           basePrice: 35.50,
           unit: "roll",
-          quantity: Math.ceil(measurements.totalArea / 200)
+          quantity: Math.ceil(totalArea / 200)
         }
       ],
-      labor: measurements.pitchBreakdown.map(section => ({
-        pitch: section.pitch,
+      labor: pitchBreakdown.map(section => ({
+        pitch: section.pitch || "4/12",
         rate: 55.00,
-        area: section.area
+        area: section.area || 0
       })),
-      profitMargin: profitMargin,
+      profitMargin: profitMargin || 25,
       totalCost: 2500.00, // Mock calculation
       totalPrice: 3125.00, // Including profit margin
-      category: roofingCategory
+      category: roofingCategory || "SHINGLE"
     }
 
     console.log('Generated estimate:', estimate)
