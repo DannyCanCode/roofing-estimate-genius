@@ -15,41 +15,32 @@ serve(async (req) => {
     const { measurements, profitMargin, roofingCategory } = await req.json()
     console.log('Received request:', { measurements, profitMargin, roofingCategory })
 
-    if (!measurements || typeof measurements !== 'object') {
-      throw new Error('Invalid measurements data')
+    // Get Django backend URL from environment variable
+    const djangoUrl = Deno.env.get("DJANGO_BACKEND_URL")
+    if (!djangoUrl) {
+      throw new Error("Django backend URL not configured")
     }
 
-    // Calculate materials based on total area (safely)
-    const totalArea = measurements.totalArea || 0
-    const pitchBreakdown = measurements.pitchBreakdown || []
+    // Forward request to Django backend
+    const response = await fetch(`${djangoUrl}/api/generate-estimate/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        measurements,
+        profit_margin: profitMargin,
+        roofing_category: roofingCategory
+      })
+    })
 
-    // Mock response data structure
-    const estimate = {
-      materials: [
-        {
-          name: "Standard Shingles",
-          basePrice: 25.99,
-          unit: "bundle",
-          quantity: Math.ceil(totalArea / 100) * 3
-        },
-        {
-          name: "Underlayment",
-          basePrice: 35.50,
-          unit: "roll",
-          quantity: Math.ceil(totalArea / 200)
-        }
-      ],
-      labor: pitchBreakdown.map(section => ({
-        pitch: section.pitch || "4/12",
-        rate: 55.00,
-        area: section.area || 0
-      })),
-      profitMargin: profitMargin || 25,
-      totalCost: 2500.00, // Mock calculation
-      totalPrice: 3125.00, // Including profit margin
-      category: roofingCategory || "SHINGLE"
+    if (!response.ok) {
+      const error = await response.text()
+      console.error('Django backend error:', error)
+      throw new Error(`Django backend error: ${error}`)
     }
 
+    const estimate = await response.json()
     console.log('Generated estimate:', estimate)
 
     return new Response(

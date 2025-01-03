@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +6,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -16,22 +16,35 @@ serve(async (req) => {
     const file = formData.get('file')
     
     if (!file || !(file instanceof File)) {
-      throw new Error('No file uploaded')
+      throw new Error('No PDF file provided')
     }
 
-    // Here you would implement the PDF processing logic
-    // For now, we'll return mock data
-    const mockMeasurements = {
-      totalArea: 2000,
-      pitch: "6/12",
-      sections: [
-        { area: 1200, pitch: "6/12" },
-        { area: 800, pitch: "4/12" }
-      ]
+    // Get Django backend URL from environment variable
+    const djangoUrl = Deno.env.get("DJANGO_BACKEND_URL")
+    if (!djangoUrl) {
+      throw new Error("Django backend URL not configured")
     }
+
+    // Forward the file to Django backend
+    const djangoFormData = new FormData()
+    djangoFormData.append('file', file)
+
+    const response = await fetch(`${djangoUrl}/api/process-pdf/`, {
+      method: 'POST',
+      body: djangoFormData
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      console.error('Django backend error:', error)
+      throw new Error(`Django backend error: ${error}`)
+    }
+
+    const measurements = await response.json()
+    console.log('Processed measurements:', measurements)
 
     return new Response(
-      JSON.stringify(mockMeasurements),
+      JSON.stringify(measurements),
       { 
         headers: { 
           ...corsHeaders,
@@ -40,6 +53,8 @@ serve(async (req) => {
       }
     )
   } catch (error) {
+    console.error('Error processing PDF:', error)
+    
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
