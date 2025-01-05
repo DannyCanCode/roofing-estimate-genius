@@ -1,8 +1,7 @@
 import React from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { SelectField } from "./fields/SelectField";
+import { NumberField } from "./fields/NumberField";
+import { CheckboxField } from "./fields/CheckboxField";
 
 const PITCH_OPTIONS = [
   "2/12", "3/12", "4/12", "5/12", "6/12",
@@ -58,123 +57,81 @@ export function EstimateFormFields({
 }: EstimateFormFieldsProps) {
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <Label>Roofing Type</Label>
-        <Select value={roofingType} onValueChange={setRoofingType}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select roofing type" />
-          </SelectTrigger>
-          <SelectContent>
-            {ROOFING_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <SelectField
+        label="Roofing Type"
+        value={roofingType}
+        onValueChange={setRoofingType}
+        options={ROOFING_TYPES}
+        placeholder="Select roofing type"
+      />
 
-      <div className="space-y-2">
-        <Label>Roof Pitch</Label>
-        <Select value={pitch} onValueChange={setPitch}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select pitch" />
-          </SelectTrigger>
-          <SelectContent>
-            {PITCH_OPTIONS.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <SelectField
+        label="Roof Pitch"
+        value={pitch}
+        onValueChange={setPitch}
+        options={PITCH_OPTIONS}
+        placeholder="Select pitch"
+      />
 
-      <div className="space-y-2">
-        <Label>Total Area (sq ft)</Label>
-        <Input
-          type="number"
-          value={totalArea}
-          onChange={(e) => setTotalArea(e.target.value)}
-          placeholder="Enter total area"
-          min="0"
-          step="0.01"
-        />
-      </div>
+      <NumberField
+        label="Total Area (sq ft)"
+        value={totalArea}
+        onChange={setTotalArea}
+        placeholder="Enter total area"
+        min="0"
+        step="0.01"
+      />
 
-      <div className="space-y-2">
-        <Label>Waste Percentage (%)</Label>
-        <Input
-          type="number"
-          value={wastePercentage}
-          onChange={(e) => setWastePercentage(e.target.value)}
-          placeholder="Enter waste percentage"
-          min="12"
-          step="0.1"
-        />
-      </div>
+      <NumberField
+        label="Waste Percentage (%)"
+        value={wastePercentage}
+        onChange={setWastePercentage}
+        placeholder="Enter waste percentage"
+        min="12"
+        step="0.1"
+      />
 
-      <div className="space-y-2">
-        <Label>Number of Plumbing Boots</Label>
-        <Input
-          type="number"
-          value={plumbingBoots}
-          onChange={(e) => setPlumbingBoots(e.target.value)}
-          placeholder="Enter number of plumbing boots"
-          min="0"
-        />
-      </div>
+      <NumberField
+        label="Number of Plumbing Boots"
+        value={plumbingBoots}
+        onChange={setPlumbingBoots}
+        placeholder="Enter number of plumbing boots"
+      />
 
-      <div className="space-y-2">
-        <Label>Number of 4" Goosenecks</Label>
-        <Input
-          type="number"
-          value={goosenecks4Inch}
-          onChange={(e) => setGoosenecks4Inch(e.target.value)}
-          placeholder="Enter number of 4&quot; goosenecks"
-          min="0"
-        />
-      </div>
+      <NumberField
+        label="Number of 4&quot; Goosenecks"
+        value={goosenecks4Inch}
+        onChange={setGoosenecks4Inch}
+        placeholder="Enter number of 4&quot; goosenecks"
+      />
 
-      <div className="space-y-2">
-        <Label>Number of 10" Goosenecks</Label>
-        <Input
-          type="number"
-          value={goosenecks10Inch}
-          onChange={(e) => setGoosenecks10Inch(e.target.value)}
-          placeholder="Enter number of 10&quot; goosenecks"
-          min="0"
-        />
-      </div>
+      <NumberField
+        label="Number of 10&quot; Goosenecks"
+        value={goosenecks10Inch}
+        onChange={setGoosenecks10Inch}
+        placeholder="Enter number of 10&quot; goosenecks"
+      />
 
-      <div className="space-y-2">
-        <Label>Number of Skylights</Label>
-        <Input
-          type="number"
-          value={skylights}
-          onChange={(e) => setSkylights(e.target.value)}
-          placeholder="Enter number of skylights"
-          min="0"
-        />
-      </div>
+      <NumberField
+        label="Number of Skylights"
+        value={skylights}
+        onChange={setSkylights}
+        placeholder="Enter number of skylights"
+      />
 
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="two-story"
-          checked={isTwoStory}
-          onCheckedChange={(checked) => setIsTwoStory(checked as boolean)}
-        />
-        <Label htmlFor="two-story">Two Story Building</Label>
-      </div>
+      <CheckboxField
+        id="two-story"
+        label="Two Story Building"
+        checked={isTwoStory}
+        onCheckedChange={setIsTwoStory}
+      />
 
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="keep-gutters"
-          checked={keepGutters}
-          onCheckedChange={(checked) => setKeepGutters(checked as boolean)}
-        />
-        <Label htmlFor="keep-gutters">Keep Existing Gutters</Label>
-      </div>
+      <CheckboxField
+        id="keep-gutters"
+        label="Keep Existing Gutters"
+        checked={keepGutters}
+        onCheckedChange={setKeepGutters}
+      />
     </div>
   );
 }
