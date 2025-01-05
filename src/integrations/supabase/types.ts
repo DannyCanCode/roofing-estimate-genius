@@ -9,100 +9,185 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      estimates: {
+      estimate_items: {
         Row: {
-          created_at: string
-          drip_edge_length: number | null
-          eaves_count: number | null
-          eaves_length: number | null
-          flashing_length: number | null
-          hips_count: number | null
-          hips_length: number | null
+          created_at: string | null
+          description: string
+          estimate_id: string
           id: string
-          material_type: string | null
-          notes: string | null
-          predominant_pitch: string | null
-          pricing_details: Json
-          rakes_count: number | null
-          rakes_length: number | null
-          report_id: string
-          ridges_count: number | null
-          ridges_length: number | null
-          status: string
-          step_flashing_length: number | null
-          total_amount: number | null
-          total_penetrations_area: number | null
-          total_roof_area: number | null
-          total_roof_squares: number | null
-          updated_at: string
-          valleys_count: number | null
-          valleys_length: number | null
-          waste_factor_percent: number | null
+          item_type: string
+          quantity: number
+          total_price: number
+          unit_price: number
+          updated_at: string | null
         }
         Insert: {
-          created_at: string
-          drip_edge_length?: number | null
-          eaves_count?: number | null
-          eaves_length?: number | null
-          flashing_length?: number | null
-          hips_count?: number | null
-          hips_length?: number | null
+          created_at?: string | null
+          description: string
+          estimate_id: string
           id?: string
-          material_type?: string | null
-          notes?: string | null
-          predominant_pitch?: string | null
-          pricing_details?: Json
-          rakes_count?: number | null
-          rakes_length?: number | null
-          report_id: string
-          ridges_count?: number | null
-          ridges_length?: number | null
-          status?: string
-          step_flashing_length?: number | null
-          total_amount?: number | null
-          total_penetrations_area?: number | null
-          total_roof_area?: number | null
-          total_roof_squares?: number | null
-          updated_at: string
-          valleys_count?: number | null
-          valleys_length?: number | null
-          waste_factor_percent?: number | null
+          item_type: string
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
-          drip_edge_length?: number | null
-          eaves_count?: number | null
-          eaves_length?: number | null
-          flashing_length?: number | null
-          hips_count?: number | null
-          hips_length?: number | null
+          created_at?: string | null
+          description?: string
+          estimate_id?: string
           id?: string
-          material_type?: string | null
-          notes?: string | null
-          predominant_pitch?: string | null
-          pricing_details?: Json
-          rakes_count?: number | null
-          rakes_length?: number | null
-          report_id?: string
-          ridges_count?: number | null
-          ridges_length?: number | null
-          status?: string
-          step_flashing_length?: number | null
-          total_amount?: number | null
-          total_penetrations_area?: number | null
-          total_roof_area?: number | null
-          total_roof_squares?: number | null
-          updated_at?: string
-          valleys_count?: number | null
-          valleys_length?: number | null
-          waste_factor_percent?: number | null
+          item_type?: string
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "estimates_report_id_fkey"
-            columns: ["report_id"]
+            foreignKeyName: "estimate_items_estimate_id_fkey"
+            columns: ["estimate_id"]
             isOneToOne: false
-            referencedRelation: "reports"
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimates: {
+        Row: {
+          created_at: string | null
+          id: string
+          labor_cost: number
+          material_cost: number
+          notes: string | null
+          pitch: number | null
+          project_id: string
+          roof_type: string
+          status: string | null
+          total_area: number
+          total_cost: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          labor_cost?: number
+          material_cost?: number
+          notes?: string | null
+          pitch?: number | null
+          project_id: string
+          roof_type: string
+          status?: string | null
+          total_area: number
+          total_cost?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          labor_cost?: number
+          material_cost?: number
+          notes?: string | null
+          pitch?: number | null
+          project_id?: string
+          roof_type?: string
+          status?: string | null
+          total_area?: number
+          total_cost?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          address: string | null
+          company_name: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          address: string
+          city: string | null
+          created_at: string | null
+          id: string
+          name: string
+          notes: string | null
+          state: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          zip_code: string | null
+        }
+        Insert: {
+          address: string
+          city?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string
+          city?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

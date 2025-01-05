@@ -1,5 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 const PITCH_OPTIONS = [
   "2/12", "3/12", "4/12", "5/12", "6/12",
@@ -17,6 +19,18 @@ interface EstimateFormFieldsProps {
   setTotalArea: (value: string) => void;
   wastePercentage: string;
   setWastePercentage: (value: string) => void;
+  plumbingBoots: string;
+  setPlumbingBoots: (value: string) => void;
+  goosenecks4Inch: string;
+  setGoosenecks4Inch: (value: string) => void;
+  goosenecks10Inch: string;
+  setGoosenecks10Inch: (value: string) => void;
+  skylights: string;
+  setSkylights: (value: string) => void;
+  isTwoStory: boolean;
+  setIsTwoStory: (value: boolean) => void;
+  keepGutters: boolean;
+  setKeepGutters: (value: boolean) => void;
 }
 
 export function EstimateFormFields({
@@ -28,11 +42,23 @@ export function EstimateFormFields({
   setTotalArea,
   wastePercentage,
   setWastePercentage,
+  plumbingBoots,
+  setPlumbingBoots,
+  goosenecks4Inch,
+  setGoosenecks4Inch,
+  goosenecks10Inch,
+  setGoosenecks10Inch,
+  skylights,
+  setSkylights,
+  isTwoStory,
+  setIsTwoStory,
+  keepGutters,
+  setKeepGutters,
 }: EstimateFormFieldsProps) {
   return (
-    <>
+    <div className="space-y-6">
       <div className="space-y-2">
-        <label className="text-sm font-medium">Roofing Type</label>
+        <Label>Roofing Type</Label>
         <Select value={roofingType} onValueChange={setRoofingType}>
           <SelectTrigger>
             <SelectValue placeholder="Select roofing type" />
@@ -48,7 +74,7 @@ export function EstimateFormFields({
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">Roof Pitch</label>
+        <Label>Roof Pitch</Label>
         <Select value={pitch} onValueChange={setPitch}>
           <SelectTrigger>
             <SelectValue placeholder="Select pitch" />
@@ -64,7 +90,7 @@ export function EstimateFormFields({
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">Total Area (sq ft)</label>
+        <Label>Total Area (sq ft)</Label>
         <Input
           type="number"
           value={totalArea}
@@ -76,17 +102,78 @@ export function EstimateFormFields({
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium">Waste Percentage (%)</label>
+        <Label>Waste Percentage (%)</Label>
         <Input
           type="number"
           value={wastePercentage}
           onChange={(e) => setWastePercentage(e.target.value)}
           placeholder="Enter waste percentage"
-          min="0"
-          max="100"
+          min="12"
           step="0.1"
         />
       </div>
-    </>
+
+      <div className="space-y-2">
+        <Label>Number of Plumbing Boots</Label>
+        <Input
+          type="number"
+          value={plumbingBoots}
+          onChange={(e) => setPlumbingBoots(e.target.value)}
+          placeholder="Enter number of plumbing boots"
+          min="0"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Number of 4" Goosenecks</Label>
+        <Input
+          type="number"
+          value={goosenecks4Inch}
+          onChange={(e) => setGoosenecks4Inch(e.target.value)}
+          placeholder="Enter number of 4\" goosenecks"
+          min="0"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Number of 10" Goosenecks</Label>
+        <Input
+          type="number"
+          value={goosenecks10Inch}
+          onChange={(e) => setGoosenecks10Inch(e.target.value)}
+          placeholder="Enter number of 10\" goosenecks"
+          min="0"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Number of Skylights</Label>
+        <Input
+          type="number"
+          value={skylights}
+          onChange={(e) => setSkylights(e.target.value)}
+          placeholder="Enter number of skylights"
+          min="0"
+        />
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="two-story"
+          checked={isTwoStory}
+          onCheckedChange={(checked) => setIsTwoStory(checked as boolean)}
+        />
+        <Label htmlFor="two-story">Two Story Building</Label>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="keep-gutters"
+          checked={keepGutters}
+          onCheckedChange={(checked) => setKeepGutters(checked as boolean)}
+        />
+        <Label htmlFor="keep-gutters">Keep Existing Gutters</Label>
+      </div>
+    </div>
   );
 }

@@ -4,7 +4,13 @@ export interface EstimateRequest {
   roofing_type: string;
   pitch: string;
   total_area: number;
-  waste_percentage?: number; // Added waste percentage field
+  waste_percentage: number;
+  plumbing_boots: number;
+  goosenecks_4_inch: number;
+  goosenecks_10_inch: number;
+  skylights: number;
+  is_two_story: boolean;
+  keep_gutters: boolean;
 }
 
 export interface EstimateResponse {
