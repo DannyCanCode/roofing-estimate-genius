@@ -1,3 +1,4 @@
+import React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -130,7 +131,7 @@ export function EstimateFormFields({
           type="number"
           value={goosenecks4Inch}
           onChange={(e) => setGoosenecks4Inch(e.target.value)}
-          placeholder="Enter number of 4\" goosenecks"
+          placeholder="Enter number of 4&quot; goosenecks"
           min="0"
         />
       </div>
@@ -141,7 +142,7 @@ export function EstimateFormFields({
           type="number"
           value={goosenecks10Inch}
           onChange={(e) => setGoosenecks10Inch(e.target.value)}
-          placeholder="Enter number of 10\" goosenecks"
+          placeholder="Enter number of 10&quot; goosenecks"
           min="0"
         />
       </div>
