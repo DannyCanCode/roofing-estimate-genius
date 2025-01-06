@@ -12,12 +12,17 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
 
   return useMutation({
     mutationFn: async (file: File): Promise<ProcessedPdfData> => {
-      const data = await processPdfReport(file);
-      return {
-        totalArea: data.totalArea,
-        pitch: data.pitchBreakdown[0]?.pitch || "4/12",
-        suggestedWaste: data.suggestedWaste
-      };
+      try {
+        const data = await processPdfReport(file);
+        return {
+          totalArea: data.totalArea,
+          pitch: data.pitchBreakdown[0]?.pitch || "4/12",
+          suggestedWaste: data.suggestedWaste
+        };
+      } catch (error) {
+        console.error('Error processing PDF:', error);
+        throw new Error(error instanceof Error ? error.message : 'Failed to process PDF');
+      }
     },
     onSuccess: (data: ProcessedPdfData) => {
       const formattedMeasurements: RoofMeasurements = {
@@ -34,10 +39,11 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
         description: "Your roof measurements have been extracted.",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      console.error('Mutation error:', error);
       toast({
         title: "Error Processing PDF",
-        description: "Failed to process the PDF report. Please try again.",
+        description: error.message || "Failed to process the PDF report. Please try again.",
         variant: "destructive",
       });
     },
