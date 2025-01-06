@@ -46,6 +46,10 @@ const LABOR_RATES = {
 };
 
 function calculateMaterials(totalArea: number, roofingCategory: string, wastePercentage: number) {
+  if (!MATERIAL_PRICES[roofingCategory]) {
+    throw new Error(`Invalid roofing category: ${roofingCategory}`);
+  }
+
   const prices = MATERIAL_PRICES[roofingCategory];
   const areaWithWaste = totalArea * (1 + wastePercentage / 100);
   
@@ -139,12 +143,19 @@ function calculateMaterials(totalArea: number, roofingCategory: string, wastePer
 }
 
 function calculateLabor(pitchBreakdown: Array<{ pitch: string; area: number }>) {
-  const labor = pitchBreakdown.map(({ pitch, area }) => ({
-    pitch,
-    rate: LABOR_RATES[pitch] || LABOR_RATES["4/12"], // Default to 4/12 if pitch not found
-    area,
-    total: area * (LABOR_RATES[pitch] || LABOR_RATES["4/12"])
-  }));
+  if (!Array.isArray(pitchBreakdown)) {
+    throw new Error("Invalid pitch breakdown format");
+  }
+
+  const labor = pitchBreakdown.map(({ pitch, area }) => {
+    const rate = LABOR_RATES[pitch] || LABOR_RATES["4/12"]; // Default to 4/12 if pitch not found
+    return {
+      pitch,
+      rate,
+      area,
+      total: area * rate
+    };
+  });
 
   const totalLaborCost = labor.reduce((sum, item) => sum + item.total, 0);
   return { labor, totalLaborCost };
@@ -159,6 +170,16 @@ serve(async (req) => {
   try {
     const { measurements, profitMargin, roofingCategory } = await req.json();
     console.log('Received request:', { measurements, profitMargin, roofingCategory });
+
+    // Validate required fields
+    if (!measurements?.totalArea || !roofingCategory || typeof profitMargin !== 'number') {
+      throw new Error("Missing required fields: measurements.totalArea, roofingCategory, or profitMargin");
+    }
+
+    // Validate pitch breakdown
+    if (!Array.isArray(measurements.pitchBreakdown)) {
+      throw new Error("Invalid or missing pitch breakdown");
+    }
 
     // Calculate materials cost
     const { materials, totalMaterialCost } = calculateMaterials(
