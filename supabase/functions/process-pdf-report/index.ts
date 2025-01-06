@@ -6,25 +6,38 @@ const corsHeaders = {
 };
 
 const REGEX_PATTERNS = {
+  // Primary patterns for total area
   totalArea: /Total Area \(All Pitches\)\s*=\s*([\d,]+)/i,
   alternativeTotalArea: /Total\s*(?:Roof)?\s*Area\s*[:=]?\s*([\d,]+)/i,
+  
+  // Pitch patterns
   predominantPitch: /Predominant Pitch\s*=\s*(\d+)\/12/i,
   alternativePitch: /(?:Predominant|Main|Primary)\s*Pitch\s*[:=]?\s*(\d+)\/\d+/i,
+  
+  // Length measurements
   ridges: /Ridges\s*=\s*(\d+)\s*ft\s*\((\d+)\s*Ridges?\)/i,
   hips: /Hips\s*=\s*(\d+)\s*ft\s*\((\d+)\s*Hips?\)/i,
   valleys: /Valleys\s*=\s*(\d+)\s*ft\s*\((\d+)\s*Valleys?\)/i,
   rakes: /Rakes\s*=\s*(\d+)\s*ft\s*\((\d+)\s*Rakes?\)/i,
   eaves: /Eaves\s*=\s*(\d+)\s*ft\s*\((\d+)\s*Eaves?\)/i,
+  
+  // Waste table pattern
   wasteTable: /Waste %\s*\n((?:(?:\d+%)\s*\n)+)Area \(Sq ft\)\s*\n((?:[\d,]+\s*\n)+)Squares \*\s*\n((?:[\d.]+\s*\n)+)/,
+  
+  // Areas per pitch patterns
   areasPerPitch: /Areas per Pitch.*?(\d+\/12.*?(?=\n\n|\Z))/s,
   pitchDetails: /(\d+)\/12\s*=?\s*([\d,]+)(?:\s*sq\s*ft)?\s*\(?(\d+\.?\d*)%\)?/g
 };
 
 function extractNumber(text: string, pattern: RegExp): number {
+  console.log('Extracting number with pattern:', pattern);
   const match = text.match(pattern);
   if (match && match[1]) {
-    return parseFloat(match[1].replace(/,/g, ''));
+    const value = parseFloat(match[1].replace(/,/g, ''));
+    console.log('Extracted value:', value);
+    return value;
   }
+  console.log('No match found for pattern');
   return 0;
 }
 
@@ -46,7 +59,6 @@ function extractWastePercentage(text: string): number {
       .map(p => parseInt(p))
       .filter(p => !isNaN(p));
     
-    // Get the middle value if available, otherwise the first value
     if (percentages.length > 0) {
       const middleIndex = Math.floor(percentages.length / 2);
       return percentages[middleIndex];
@@ -103,6 +115,7 @@ serve(async (req) => {
     // Extract total area using multiple patterns
     let totalArea = extractNumber(fileContent, REGEX_PATTERNS.totalArea);
     if (totalArea === 0) {
+      console.log('Trying alternative total area pattern...');
       totalArea = extractNumber(fileContent, REGEX_PATTERNS.alternativeTotalArea);
     }
 
@@ -111,12 +124,15 @@ serve(async (req) => {
       throw new Error('Could not find total roof area in PDF. Please make sure you are uploading a valid EagleView report.');
     }
 
+    console.log('Successfully extracted total area:', totalArea);
+
     // Extract pitch with fallback
     let pitchMatch = fileContent.match(REGEX_PATTERNS.predominantPitch);
     if (!pitchMatch) {
       pitchMatch = fileContent.match(REGEX_PATTERNS.alternativePitch);
     }
     const pitch = pitchMatch ? `${pitchMatch[1]}/12` : "4/12";
+    console.log('Extracted pitch:', pitch);
 
     // Extract measurements
     const ridges = extractMeasurement(fileContent, REGEX_PATTERNS.ridges);
@@ -127,9 +143,11 @@ serve(async (req) => {
 
     // Extract waste percentage
     const suggestedWaste = extractWastePercentage(fileContent);
+    console.log('Extracted waste percentage:', suggestedWaste);
 
     // Extract pitch breakdown
     const pitchBreakdown = extractPitchBreakdown(fileContent);
+    console.log('Extracted pitch breakdown:', pitchBreakdown);
 
     const measurements = {
       totalArea,
@@ -151,7 +169,7 @@ serve(async (req) => {
       eavesCount: eaves.count
     };
 
-    console.log('Extracted measurements:', measurements);
+    console.log('Final measurements:', measurements);
 
     return new Response(
       JSON.stringify(measurements),
