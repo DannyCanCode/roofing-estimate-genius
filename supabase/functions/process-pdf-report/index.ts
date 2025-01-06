@@ -21,6 +21,7 @@ serve(async (req) => {
     const file = formData.get('file');
     
     if (!file || !(file instanceof File)) {
+      console.error('No PDF file provided');
       throw new Error('No PDF file provided');
     }
 
@@ -29,6 +30,7 @@ serve(async (req) => {
     console.log('File type:', file.type);
 
     if (file.type !== 'application/pdf') {
+      console.error('Invalid file type:', file.type);
       throw new Error('Invalid file type. Please upload a PDF file.');
     }
 
