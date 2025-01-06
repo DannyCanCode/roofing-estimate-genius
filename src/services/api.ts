@@ -1,7 +1,12 @@
-import { RoofMeasurements, Estimate, RoofingCategory } from "@/types/estimate";
 import { supabase } from "@/integrations/supabase/client";
+import { RoofMeasurements, RoofingCategory } from "@/types/estimate";
 
-// Use Supabase Edge Functions URL instead of localhost
+interface GenerateEstimateParams {
+  measurements: RoofMeasurements;
+  profitMargin: number;
+  roofingCategory: RoofingCategory;
+}
+
 export async function processPdfReport(file: File): Promise<RoofMeasurements> {
   const formData = new FormData();
   formData.append("file", file);
@@ -18,24 +23,40 @@ export async function processPdfReport(file: File): Promise<RoofMeasurements> {
   return data;
 }
 
-interface GenerateEstimateParams {
-  measurements: RoofMeasurements;
-  profitMargin: number;
-  roofingCategory: RoofingCategory;
-}
-
 export async function generateEstimate({
   measurements,
   profitMargin,
   roofingCategory,
-}: GenerateEstimateParams): Promise<Estimate> {
+}: GenerateEstimateParams): Promise<any> {
+  console.log('Sending estimate request:', { measurements, profitMargin, roofingCategory });
+  
+  if (!measurements?.totalArea) {
+    throw new Error("Total area is required");
+  }
+
+  if (!roofingCategory) {
+    throw new Error("Roofing category is required");
+  }
+
+  if (typeof profitMargin !== 'number') {
+    throw new Error("Profit margin must be a number");
+  }
+
   const { data, error } = await supabase.functions.invoke('generate-estimate', {
-    body: { measurements, profitMargin, roofingCategory },
+    body: {
+      measurements: {
+        totalArea: measurements.totalArea,
+        pitchBreakdown: measurements.pitchBreakdown || [{ pitch: "4/12", area: measurements.totalArea }],
+        suggestedWaste: measurements.suggestedWaste || 12
+      },
+      profitMargin,
+      roofingCategory
+    },
   });
 
   if (error) {
     console.error('Error generating estimate:', error);
-    throw new Error("Failed to generate estimate");
+    throw error;
   }
 
   return data;
