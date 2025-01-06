@@ -1,0 +1,7 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-net --allow-read --allow-env index.ts",
+    "deploy": "supabase functions deploy process-pdf"
+  },
+  "importMap": "./import_map.json"
+} 
