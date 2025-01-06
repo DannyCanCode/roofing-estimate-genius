@@ -14,11 +14,17 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
   const { toast } = useToast();
 
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      if (acceptedFiles.length === 0) return;
+    async (acceptedFiles: File[]) => {
+      if (acceptedFiles.length === 0) {
+        console.log("No files accepted");
+        return;
+      }
 
       const file = acceptedFiles[0];
+      console.log("File received:", file.name, "Type:", file.type);
+
       if (file.type !== "application/pdf") {
+        console.log("Invalid file type:", file.type);
         toast({
           title: "Invalid file type",
           description: "Please upload a PDF file",
@@ -27,7 +33,17 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
         return;
       }
 
-      onFileAccepted(file);
+      try {
+        console.log("Processing file:", file.name);
+        onFileAccepted(file);
+      } catch (error) {
+        console.error("Error processing file:", error);
+        toast({
+          title: "Error processing file",
+          description: error instanceof Error ? error.message : "Failed to process file",
+          variant: "destructive",
+        });
+      }
     },
     [onFileAccepted, toast]
   );
@@ -55,16 +71,21 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
       <input {...getInputProps()} />
       <div className="flex flex-col items-center justify-center space-y-4">
         {isProcessing ? (
-          <Loader2 className="h-12 w-12 animate-spin text-gray-400" />
+          <>
+            <Loader2 className="h-12 w-12 animate-spin text-gray-400" />
+            <p className="text-sm text-gray-500">Processing your PDF...</p>
+          </>
         ) : (
-          <Cloud className="h-12 w-12 text-gray-400" />
+          <>
+            <Cloud className="h-12 w-12 text-gray-400" />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700">
+                Drop your EagleView PDF report here
+              </p>
+              <p className="text-xs text-gray-500">PDF files only, up to 10MB</p>
+            </div>
+          </>
         )}
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">
-            Drop your EagleView PDF report here
-          </p>
-          <p className="text-xs text-gray-500">PDF files only, up to 10MB</p>
-        </div>
       </div>
     </div>
   );
