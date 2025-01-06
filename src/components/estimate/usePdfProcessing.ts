@@ -11,7 +11,9 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: processPdfReport,
+    mutationFn: async (file: File): Promise<ProcessedPdfData> => {
+      return processPdfReport(file);
+    },
     onSuccess: (data: ProcessedPdfData) => {
       const formattedMeasurements: RoofMeasurements = {
         totalArea: data.totalArea,
