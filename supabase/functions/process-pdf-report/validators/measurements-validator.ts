@@ -1,4 +1,4 @@
-import { RoofMeasurements } from '../types/measurements';
+import { RoofMeasurements } from '../types/measurements.ts';
 
 export class MeasurementsValidator {
   validate(measurements: RoofMeasurements): boolean {

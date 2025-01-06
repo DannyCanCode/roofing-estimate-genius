@@ -1,4 +1,4 @@
-import { RoofMeasurements } from '../types/measurements';
+import { RoofMeasurements } from '../types/measurements.ts';
 
 export class EagleViewParser {
   private static readonly DEFAULT_WASTE_PERCENTAGE = 15;
