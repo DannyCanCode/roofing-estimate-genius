@@ -69,19 +69,34 @@ export function PDFUploader() {
     formData.append('roofingType', selectedRoofingType)
 
     try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase configuration is missing')
+      }
+
+      console.log('Uploading to:', `${supabaseUrl}/functions/v1/process-pdf`) // Debug log
+
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-pdf`,
+        `${supabaseUrl}/functions/v1/process-pdf`,
         {
           method: 'POST',
           body: formData,
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            'Authorization': `Bearer ${supabaseKey}`
           }
         }
       )
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        console.error('Response error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        })
+        throw new Error(`HTTP error! status: ${response.status}. ${errorText}`)
       }
 
       const data = await response.json()
