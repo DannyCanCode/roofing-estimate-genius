@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { FileUpload } from "@/components/FileUpload";
 import { ProfitMarginSlider } from "@/components/ProfitMarginSlider";
@@ -11,12 +11,43 @@ import { processPdfReport, generateEstimate } from "@/services/api";
 import { RoofMeasurements } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
 import { EstimateCalculatorForm } from "@/components/EstimateCalculatorForm";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 export default function Index() {
   const [measurements, setMeasurements] = useState<RoofMeasurements | null>(null);
   const [profitMargin, setProfitMargin] = useState(25);
   const [selectedCategory, setSelectedCategory] = useState<RoofingCategory | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/login");
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to access this page",
+          variant: "destructive",
+        });
+      }
+    };
+
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/login");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate, toast]);
 
   const processPdfMutation = useMutation({
     mutationFn: processPdfReport,
@@ -61,13 +92,21 @@ export default function Index() {
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-8">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-              3MG Roofing Dashboard
-            </h1>
-            <p className="mt-2 text-sm text-gray-500">
-              Generate and manage roofing estimates
-            </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+                3MG Roofing Dashboard
+              </h1>
+              <p className="mt-2 text-sm text-gray-500">
+                Generate and manage roofing estimates
+              </p>
+            </div>
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Sign Out
+            </button>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
