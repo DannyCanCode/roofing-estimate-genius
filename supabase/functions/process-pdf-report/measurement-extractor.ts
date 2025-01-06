@@ -14,11 +14,18 @@ export class MeasurementExtractor {
     let textContent = '';
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
-      // Get text content using PDF-lib's text extraction
-      const { text } = await this.extractTextFromPage(page);
-      textContent += text + ' ';
+      console.log(`Processing page ${i + 1}`);
+      
+      // Get text content from page operations
+      const pageContent = await this.extractTextFromPage(page);
+      textContent += pageContent.text + ' ';
+      console.log(`Extracted text from page ${i + 1}:`, pageContent.text.substring(0, 100) + '...');
     }
-    console.log('Extracted raw text content');
+    
+    console.log('Extracted raw text content length:', textContent.length);
+    if (textContent.length === 0) {
+      throw new Error('No text content extracted from PDF');
+    }
 
     const measurements = await this.parseMeasurements(textContent);
     
@@ -30,24 +37,40 @@ export class MeasurementExtractor {
   }
 
   private async extractTextFromPage(page: any): Promise<{ text: string }> {
-    // PDF-lib doesn't have direct text extraction, so we'll use a basic approach
-    // This is a simplified version - you might want to enhance this
-    const text = page.doc.catalog.get(page.ref)?.get('Contents')?.toString() || '';
-    return { text };
+    try {
+      // Get all operations from the page
+      const operations = page.getOperations();
+      let text = '';
+      
+      // Extract text from text-showing operations
+      for (const op of operations) {
+        if (op.operator === 'Tj' || op.operator === 'TJ') {
+          const content = Array.isArray(op.args[0]) 
+            ? op.args[0].join('') 
+            : op.args[0].toString();
+          text += content + ' ';
+        }
+      }
+      
+      return { text };
+    } catch (error) {
+      console.error('Error extracting text from page:', error);
+      return { text: '' };
+    }
   }
 
   private async parseMeasurements(text: string): Promise<any> {
     console.log('Parsing measurements from text');
     
     // Extract total area
-    const areaMatch = text.match(/Total Area \(All Pitches\)\s*=\s*([\d,]+)/);
+    const areaMatch = text.match(/Total Area \(All Pitches\)\s*=\s*([\d,]+)/i);
     const totalArea = areaMatch 
       ? parseFloat(areaMatch[1].replace(',', ''))
       : 0;
     console.log('Extracted total area:', totalArea);
 
     // Extract predominant pitch
-    const pitchMatch = text.match(/Predominant Pitch\s*=\s*([\d.]+)/);
+    const pitchMatch = text.match(/Predominant Pitch\s*=\s*([\d.]+)/i);
     const pitch = pitchMatch
       ? parseFloat(pitchMatch[1])
       : MeasurementExtractor.DEFAULT_PITCH;
@@ -88,7 +111,7 @@ export class MeasurementExtractor {
   private validateMeasurements(measurements: any): boolean {
     console.log('Validating measurements:', measurements);
 
-    if (measurements.total_area <= 0) {
+    if (!measurements.total_area || measurements.total_area <= 0) {
       console.error('Total area must be greater than 0');
       return false;
     }
