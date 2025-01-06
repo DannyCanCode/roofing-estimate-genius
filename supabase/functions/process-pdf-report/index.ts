@@ -9,7 +9,8 @@ const corsHeaders = {
 async function extractTextFromPdf(pdfBuffer: ArrayBuffer): Promise<string> {
   try {
     console.log('Starting PDF parsing...');
-    const data = await pdfParse(pdfBuffer);
+    const uint8Array = new Uint8Array(pdfBuffer);
+    const data = await pdfParse(uint8Array);
     
     if (!data.text || data.text.length === 0) {
       throw new Error('No text content could be extracted');
