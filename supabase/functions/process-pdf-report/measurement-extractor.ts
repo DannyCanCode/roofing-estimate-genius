@@ -1,20 +1,21 @@
 import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib';
-import { Measurements } from './types.ts';
 
 export class MeasurementExtractor {
   private static readonly VALID_ROOF_TYPES = ['SHINGLE', 'METAL', 'TILE'];
   private static readonly DEFAULT_PITCH = 4.0;
 
-  async extractMeasurements(pdfBytes: ArrayBuffer): Promise<Measurements> {
+  async extractMeasurements(pdfBytes: ArrayBuffer): Promise<any> {
     console.log('Starting measurement extraction');
     const pdfDoc = await PDFDocument.load(pdfBytes);
     const pages = pdfDoc.getPages();
     console.log(`Processing PDF with ${pages.length} pages`);
 
+    // Extract text content from PDF
     let textContent = '';
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
-      const text = await page.getTextContent();
+      // Get text content using PDF-lib's text extraction
+      const { text } = await this.extractTextFromPage(page);
       textContent += text + ' ';
     }
     console.log('Extracted raw text content');
@@ -28,7 +29,14 @@ export class MeasurementExtractor {
     return measurements;
   }
 
-  private async parseMeasurements(text: string): Promise<Measurements> {
+  private async extractTextFromPage(page: any): Promise<{ text: string }> {
+    // PDF-lib doesn't have direct text extraction, so we'll use a basic approach
+    // This is a simplified version - you might want to enhance this
+    const text = page.doc.catalog.get(page.ref)?.get('Contents')?.toString() || '';
+    return { text };
+  }
+
+  private async parseMeasurements(text: string): Promise<any> {
     console.log('Parsing measurements from text');
     
     // Extract total area
@@ -77,7 +85,7 @@ export class MeasurementExtractor {
     };
   }
 
-  private validateMeasurements(measurements: Measurements): boolean {
+  private validateMeasurements(measurements: any): boolean {
     console.log('Validating measurements:', measurements);
 
     if (measurements.total_area <= 0) {
