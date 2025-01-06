@@ -13,18 +13,26 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
   return useMutation({
     mutationFn: async (file: File): Promise<ProcessedPdfData> => {
       try {
+        console.log('Processing PDF file:', file.name);
         const data = await processPdfReport(file);
-        return {
-          totalArea: data.totalArea,
-          pitch: data.pitchBreakdown[0]?.pitch || "4/12",
-          suggestedWaste: data.suggestedWaste
+        console.log('Received data from API:', data);
+
+        // Ensure we have the required data with fallbacks
+        const processedData: ProcessedPdfData = {
+          totalArea: data.totalArea || 0,
+          pitch: data.pitchBreakdown?.[0]?.pitch || "4/12",
+          suggestedWaste: data.suggestedWaste || 15
         };
+
+        console.log('Processed data:', processedData);
+        return processedData;
       } catch (error) {
         console.error('Error processing PDF:', error);
         throw new Error(error instanceof Error ? error.message : 'Failed to process PDF');
       }
     },
     onSuccess: (data: ProcessedPdfData) => {
+      console.log('Mutation succeeded with data:', data);
       const formattedMeasurements: RoofMeasurements = {
         totalArea: data.totalArea,
         pitchBreakdown: [{
