@@ -17,10 +17,14 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
         const data = await processPdfReport(file);
         console.log('Received data from API:', data);
 
+        if (!data.totalArea || data.totalArea <= 0) {
+          throw new Error('Invalid or missing total area in PDF');
+        }
+
         // Ensure we have the required data with fallbacks
         const processedData: ProcessedPdfData = {
-          totalArea: data.totalArea || 0,
-          pitch: data.pitchBreakdown?.[0]?.pitch || "4/12",
+          totalArea: data.totalArea,
+          pitch: data.pitchBreakdown?.[0]?.pitch || data.pitch || "4/12",
           suggestedWaste: data.suggestedWaste || 15,
           // Add all the raw data fields
           ...data

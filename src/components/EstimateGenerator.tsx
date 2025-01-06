@@ -20,6 +20,7 @@ const EstimateGenerator = () => {
 
   const processPdfMutation = usePdfProcessing({
     onSuccess: (measurements, rawData) => {
+      console.log('PDF processing succeeded with measurements:', measurements);
       setMeasurements(measurements);
       setRawPdfData(rawData);
     }
@@ -33,7 +34,13 @@ const EstimateGenerator = () => {
   });
 
   useEffect(() => {
-    if (measurements && selectedCategory) {
+    if (measurements?.totalArea && selectedCategory) {
+      console.log('Generating estimate with:', {
+        measurements,
+        profitMargin,
+        roofingCategory: selectedCategory
+      });
+      
       generateEstimateMutation.mutate({
         measurements,
         profitMargin,
