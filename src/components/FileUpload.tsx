@@ -21,7 +21,7 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
       }
 
       const file = acceptedFiles[0];
-      console.log("File received:", file.name, "Type:", file.type);
+      console.log("File received:", file.name, "Type:", file.type, "Size:", file.size);
 
       if (file.type !== "application/pdf") {
         console.log("Invalid file type:", file.type);
@@ -33,9 +33,20 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
         return;
       }
 
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        console.log("File too large:", file.size);
+        toast({
+          title: "File too large",
+          description: "Please upload a file smaller than 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
       try {
-        console.log("Processing file:", file.name);
-        onFileAccepted(file);
+        console.log("Starting file processing:", file.name);
+        await onFileAccepted(file);
+        console.log("File processing completed:", file.name);
       } catch (error) {
         console.error("Error processing file:", error);
         toast({
