@@ -70,7 +70,7 @@ export function PDFUploader() {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/process-pdf`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-pdf`,
         {
           method: 'POST',
           body: formData,
