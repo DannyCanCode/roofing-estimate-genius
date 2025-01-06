@@ -1,4 +1,4 @@
-import { PageContent } from '../types/measurements';
+import { PageContent } from '../types/measurements.ts';
 
 export class TextExtractor {
   async extractTextFromPage(page: any): Promise<PageContent> {
