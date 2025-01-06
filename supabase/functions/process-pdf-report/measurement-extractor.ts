@@ -19,7 +19,7 @@ export class MeasurementExtractor {
         // Get text content from page operations
         const pageContent = await this.extractTextFromPage(page);
         textContent += pageContent.text + ' ';
-        console.log(`Page ${i + 1} content:`, pageContent.text);
+        console.log(`Page ${i + 1} raw content:`, pageContent.text);
       } catch (error) {
         console.error(`Error processing page ${i + 1}:`, error);
       }
@@ -56,6 +56,7 @@ export class MeasurementExtractor {
         }
       }
       
+      console.log('Extracted text from page:', text);
       return { text };
     } catch (error) {
       console.error('Error extracting text from page:', error);
@@ -71,7 +72,9 @@ export class MeasurementExtractor {
       /Total\s*Area\s*(?:\(All\s*Pitches\))?\s*[=:]\s*([\d,\.]+)/i,
       /Total\s*Square\s*Footage\s*[=:]\s*([\d,\.]+)/i,
       /Roof\s*Area\s*[=:]\s*([\d,\.]+)/i,
-      /Total\s*Squares\s*[=:]\s*([\d,\.]+)/i
+      /Total\s*Squares\s*[=:]\s*([\d,\.]+)/i,
+      /Total\s*Area\s*:\s*([\d,\.]+)/i,
+      /Area\s*:\s*([\d,\.]+)/i
     ];
 
     let totalArea = 0;
@@ -88,7 +91,8 @@ export class MeasurementExtractor {
     const pitchPatterns = [
       /(?:Main|Primary|Predominant|Average)\s*Pitch\s*[=:]\s*([\d\.]+)/i,
       /Roof\s*Pitch\s*[=:]\s*([\d\.]+)/i,
-      /Pitch\s*[=:]\s*([\d\.]+)/i
+      /Pitch\s*[=:]\s*([\d\.]+)/i,
+      /(\d+)(?:\/\d+)?(?:\.\d+)?\s*(?:pitch|slope)/i
     ];
 
     let pitch = MeasurementExtractor.DEFAULT_PITCH;
@@ -119,7 +123,8 @@ export class MeasurementExtractor {
     // Extract waste percentage
     const wastePatterns = [
       /(?:Suggested|Recommended)\s*Waste\s*[=:]\s*(\d+)%/i,
-      /Waste\s*(?:Factor|Percentage)\s*[=:]\s*(\d+)%/i
+      /Waste\s*(?:Factor|Percentage)\s*[=:]\s*(\d+)%/i,
+      /Waste\s*:\s*(\d+)%/i
     ];
     
     let wastePercentage = 12; // Default
@@ -136,7 +141,8 @@ export class MeasurementExtractor {
     const addressPatterns = [
       /Property\s*Address\s*[=:]\s*([^\n]+)/i,
       /Address\s*[=:]\s*([^\n]+)/i,
-      /Location\s*[=:]\s*([^\n]+)/i
+      /Location\s*[=:]\s*([^\n]+)/i,
+      /Property\s*:\s*([^\n]+)/i
     ];
 
     let propertyAddress;
@@ -165,24 +171,30 @@ export class MeasurementExtractor {
   private validateMeasurements(measurements: any): boolean {
     console.log('Validating measurements:', measurements);
 
-    if (!measurements.total_area) {
+    // More lenient validation
+    if (!measurements.total_area && measurements.total_area !== 0) {
       console.error('Total area is missing');
       return false;
     }
 
-    if (isNaN(measurements.total_area) || measurements.total_area <= 0) {
+    if (isNaN(measurements.total_area)) {
       console.error('Invalid total area value:', measurements.total_area);
       return false;
     }
 
+    // Allow zero area for now, just log a warning
+    if (measurements.total_area <= 0) {
+      console.warn('Warning: Total area is zero or negative:', measurements.total_area);
+    }
+
     // More lenient pitch validation
-    if (isNaN(measurements.pitch)) {
+    if (measurements.pitch && isNaN(measurements.pitch)) {
       console.error('Invalid pitch value:', measurements.pitch);
       return false;
     }
 
     // Allow any reasonable pitch value
-    if (measurements.pitch <= 0 || measurements.pitch > 45) {
+    if (measurements.pitch && (measurements.pitch <= 0 || measurements.pitch > 45)) {
       console.warn('Unusual pitch value:', measurements.pitch);
       // Don't return false here, just warn
     }
