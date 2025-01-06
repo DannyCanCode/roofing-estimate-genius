@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { EstimateCalculator } from './EstimateCalculator'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { EstimatePreview } from './EstimatePreview'
+import { PRICING } from '@/config/pricing'
 
 interface Measurements {
   totalRoofArea: string | null
@@ -107,6 +108,76 @@ export function PDFUploader() {
       setIsLoading(false)
     }
   }
+
+  const getEstimateItems = () => {
+    if (!result?.measurements.totalRoofArea) return []
+
+    const totalArea = parseFloat(result.measurements.totalRoofArea.replace(/,/g, ''))
+    const pitch = result.measurements.predominantPitch ? parseInt(result.measurements.predominantPitch) : 4
+    const wasteFactor = result.measurements.suggestedWasteFactor ? parseFloat(result.measurements.suggestedWasteFactor) : 15
+    
+    // Calculate squares needed (1 square = 100 sq ft)
+    const squares = Math.ceil(totalArea / 100 * (1 + wasteFactor/100))
+
+    // Determine labor rate based on pitch
+    let laborRate = PRICING.LABOR_RATES['4/12-7/12']
+    if (pitch >= 13) laborRate = PRICING.LABOR_RATES['13/12-16/12']
+    else if (pitch >= 10) laborRate = PRICING.LABOR_RATES['10/12-12/12']
+    else if (pitch >= 8) laborRate = PRICING.LABOR_RATES['8/12-9/12']
+
+    return [
+      {
+        description: 'SHINGLE Material',
+        quantity: squares,
+        unit: 'sq ft',
+        unitPrice: PRICING.MATERIALS.shingles,
+        total: squares * PRICING.MATERIALS.shingles
+      },
+      {
+        description: 'Underlayment',
+        quantity: totalArea,
+        unit: 'sq ft',
+        unitPrice: 0.45,
+        total: totalArea * 0.45
+      },
+      {
+        description: 'Starter Strip',
+        quantity: totalArea,
+        unit: 'sq ft',
+        unitPrice: 0.30,
+        total: totalArea * 0.30
+      },
+      {
+        description: 'Ridge Caps',
+        quantity: totalArea,
+        unit: 'sq ft',
+        unitPrice: 0.25,
+        total: totalArea * 0.25
+      },
+      {
+        description: 'Nails/Fasteners',
+        quantity: totalArea,
+        unit: 'sq ft',
+        unitPrice: 0.15,
+        total: totalArea * 0.15
+      },
+      {
+        description: `Labor for ${pitch}/12 pitch`,
+        quantity: totalArea,
+        unit: 'sq ft',
+        unitPrice: laborRate,
+        total: totalArea * laborRate
+      }
+    ]
+  }
+
+  const handleExportPdf = () => {
+    // TODO: Implement PDF export
+    console.log('Export PDF')
+  }
+
+  const items = getEstimateItems()
+  const totalPrice = items.reduce((sum, item) => sum + item.total, 0)
 
   return (
     <div className="space-y-8">
@@ -210,8 +281,11 @@ export function PDFUploader() {
             </CardContent>
           </Card>
 
-          {/* Estimate Calculator */}
-          <EstimateCalculator pricing={result.pricing} />
+          <EstimatePreview
+            items={items}
+            totalPrice={totalPrice}
+            onExportPdf={handleExportPdf}
+          />
         </div>
       )}
     </div>
