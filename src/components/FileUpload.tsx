@@ -3,6 +3,7 @@ import { useDropzone } from "react-dropzone";
 import { Cloud, File, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FileUploadProps {
   onFileAccepted: (file: File) => void;
@@ -49,6 +50,36 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
           title: "Processing PDF",
           description: "Your file is being processed...",
         });
+
+        // Upload file to Supabase Storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `reports/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('eagleview-reports')
+          .upload(filePath, file);
+
+        if (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          throw new Error("Failed to upload PDF file");
+        }
+
+        // Create report record
+        const { error: dbError } = await supabase
+          .from('reports')
+          .insert({
+            file_path: filePath,
+            original_filename: file.name,
+            status: 'processing',
+            metadata: {}
+          });
+
+        if (dbError) {
+          console.error('Error saving report to database:', dbError);
+          throw new Error("Failed to save report information");
+        }
+
         await onFileAccepted(file);
         console.log("File processing completed:", file.name);
       } catch (error) {
