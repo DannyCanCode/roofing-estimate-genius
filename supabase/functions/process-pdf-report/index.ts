@@ -1,15 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as pdfParse from 'npm:pdf-parse';
+import { extractNumber, extractMeasurement, extractPitchBreakdown } from './utils/measurementExtractor.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const REGEX_PATTERNS = {
+  totalArea: /Total Area \(All Pitches\)\s*=\s*([\d,]+)/i,
+  totalFacets: /Total Roof Facets\s*=\s*(\d+)/i,
+  predominantPitch: /Predominant Pitch\s*=\s*(\d+)\/12/i,
+  wasteTable: /Waste %\s*\n((?:(?:\d+%)\s*\n)+)Area \(Sq ft\)\s*\n((?:[\d,]+\s*\n)+)Squares \*\s*\n((?:[\d.]+\s*\n)+)/,
+};
+
 async function extractTextFromPdf(pdfBuffer: ArrayBuffer): Promise<string> {
   try {
     console.log('Starting PDF parsing...');
-    // Convert ArrayBuffer to Buffer for pdf-parse
     const buffer = new Uint8Array(pdfBuffer);
     console.log('Buffer created, length:', buffer.length);
     
@@ -30,33 +37,61 @@ async function extractTextFromPdf(pdfBuffer: ArrayBuffer): Promise<string> {
   }
 }
 
-function findTotalArea(text: string): number {
-  console.log('Searching for total area in text');
-  
-  const patterns = [
-    /Total\s*Area\s*(?:\(All\s*Pitches\))?\s*[:=]?\s*([\d,]+)/i,
-    /Total\s*Roof\s*Area\s*[:=]?\s*([\d,]+)/i,
-    /Roof\s*Area\s*[:=]?\s*([\d,]+)/i,
-    /Area\s*\(Sq\s*ft\)\s*[:=]?\s*([\d,]+)/i,
-    /(\d{2,}(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|sqft|sf)/i,
-    /Total\s*Square\s*Footage\s*[:=]?\s*([\d,]+)/i,
-    /Total\s*Squares\s*[:=]?\s*([\d,]+)/i
-  ];
-
-  for (const pattern of patterns) {
-    console.log('Trying pattern:', pattern);
-    const match = text.match(pattern);
-    if (match && match[1]) {
-      const area = parseFloat(match[1].replace(/,/g, ''));
-      console.log('Found area:', area);
-      if (area > 0) {
-        return area;
-      }
-    }
+function extractWasteTable(text: string): { 
+  wasteTable: Array<{ percentage: number; area: number; squares: number; is_suggested: boolean }>;
+  suggested_waste_percentage: number;
+} {
+  const match = text.match(REGEX_PATTERNS.wasteTable);
+  if (!match) {
+    return { wasteTable: [], suggested_waste_percentage: 15 }; // Default waste percentage
   }
 
-  console.log('No area found with any pattern');
-  throw new Error('Could not find total roof area in PDF. Please make sure you are uploading a valid EagleView report.');
+  const percentages = match[1].trim().split('\n').map(p => parseFloat(p));
+  const areas = match[2].trim().split('\n').map(a => parseFloat(a.replace(/,/g, '')));
+  const squares = match[3].trim().split('\n').map(s => parseFloat(s));
+
+  const wasteTable = percentages.map((percentage, index) => ({
+    percentage,
+    area: areas[index] || 0,
+    squares: squares[index] || 0,
+    is_suggested: index === Math.floor(percentages.length / 2)
+  }));
+
+  const suggested_waste_percentage = percentages[Math.floor(percentages.length / 2)] || 15;
+
+  return { wasteTable, suggested_waste_percentage };
+}
+
+function processMeasurements(text: string) {
+  console.log('Processing measurements from text');
+  
+  const totalArea = extractNumber(text, REGEX_PATTERNS.totalArea);
+  const totalFacets = extractNumber(text, REGEX_PATTERNS.totalFacets);
+  const predominantPitchMatch = text.match(REGEX_PATTERNS.predominantPitch);
+  const predominantPitch = predominantPitchMatch ? parseInt(predominantPitchMatch[1]) : 4;
+
+  const ridges = extractMeasurement(text, /Ridges\s*=\s*(\d+)\s*ft\s*\((\d+)\s*Ridges?\)/i);
+  const hips = extractMeasurement(text, /Hips\s*=\s*(\d+)\s*ft\s*\((\d+)\s*Hips?\)/i);
+  const valleys = extractMeasurement(text, /Valleys\s*=\s*(\d+)\s*ft\s*\((\d+)\s*Valleys?\)/i);
+  const rakes = extractMeasurement(text, /Rakes\s*=\s*(\d+)\s*ft\s*\((\d+)\s*Rakes?\)/i);
+  const eaves = extractMeasurement(text, /Eaves\s*=\s*(\d+)\s*ft\s*\((\d+)\s*Eaves?\)/i);
+
+  const { wasteTable, suggested_waste_percentage } = extractWasteTable(text);
+  const pitchBreakdown = extractPitchBreakdown(text);
+
+  return {
+    totalArea,
+    totalRoofFacets: totalFacets,
+    predominantPitch,
+    pitchBreakdown,
+    ridges,
+    hips,
+    valleys,
+    rakes,
+    eaves,
+    wasteTable,
+    suggestedWaste: suggested_waste_percentage,
+  };
 }
 
 serve(async (req) => {
@@ -87,19 +122,9 @@ serve(async (req) => {
       throw new Error('Could not extract text from PDF. This might be a scanned or image-based PDF.');
     }
 
-    // Find total area
-    const totalArea = findTotalArea(textContent);
-
-    const measurements = {
-      totalArea,
-      pitchBreakdown: [{
-        pitch: "4/12", // Default pitch if not found
-        area: totalArea
-      }],
-      suggestedWaste: 15 // Default waste percentage
-    };
-
-    console.log('Successfully processed PDF:', measurements);
+    // Process measurements
+    const measurements = processMeasurements(textContent);
+    console.log('Successfully processed measurements:', measurements);
 
     return new Response(
       JSON.stringify(measurements),
