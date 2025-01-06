@@ -15,10 +15,12 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
       try {
         console.log('Processing PDF file:', file.name);
         const data = await processPdfReport(file);
-        console.log('Received data from API:', data);
+        console.log('Received raw data from API:', data);
 
-        if (!data.totalArea || data.totalArea <= 0) {
-          throw new Error('Invalid or missing total area in PDF');
+        // Enhanced validation for total area
+        if (!data.totalArea || typeof data.totalArea !== 'number' || data.totalArea <= 0) {
+          console.error('Invalid total area in data:', data.totalArea);
+          throw new Error('Could not extract roof area from PDF. Please make sure you are uploading a valid EagleView report.');
         }
 
         // Get the pitch from either pitchBreakdown or the direct pitch field
