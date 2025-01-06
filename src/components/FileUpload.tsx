@@ -51,6 +51,13 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
           description: "Your file is being processed...",
         });
 
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          throw new Error("You must be logged in to upload files");
+        }
+
         // Upload file to Supabase Storage
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
@@ -65,14 +72,15 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
           throw new Error("Failed to upload PDF file");
         }
 
-        // Create report record
+        // Create report record with user_id
         const { error: dbError } = await supabase
           .from('reports')
           .insert({
             file_path: filePath,
             original_filename: file.name,
             status: 'processing',
-            metadata: {}
+            metadata: {},
+            user_id: user.id // Add the user_id here
           });
 
         if (dbError) {
