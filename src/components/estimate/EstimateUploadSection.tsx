@@ -1,18 +1,17 @@
 import { FileUpload } from "@/components/FileUpload";
-import { RoofMeasurements } from "@/types/estimate";
 
 interface EstimateUploadSectionProps {
-  onMeasurementsExtracted: (measurements: RoofMeasurements) => void;
+  onFileAccepted: (file: File) => void;
   isProcessing: boolean;
 }
 
 export function EstimateUploadSection({ 
-  onMeasurementsExtracted,
+  onFileAccepted,
   isProcessing 
 }: EstimateUploadSectionProps) {
   return (
     <FileUpload
-      onFileAccepted={onMeasurementsExtracted}
+      onFileAccepted={onFileAccepted}
       isProcessing={isProcessing}
     />
   );

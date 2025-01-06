@@ -3,7 +3,11 @@ import { processPdfReport } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { ProcessedPdfData, RoofMeasurements } from "@/types/estimate";
 
-export const usePdfProcessing = (onSuccess: (measurements: RoofMeasurements) => void) => {
+interface PdfProcessingCallbacks {
+  onSuccess: (measurements: RoofMeasurements) => void;
+}
+
+export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
   const { toast } = useToast();
 
   return useMutation({

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from "@/hooks/use-toast";
 import { EstimatePreview } from "@/components/EstimatePreview";
 import { RoofingCategorySelector, RoofingCategory } from "@/components/RoofingCategorySelector";
 import { ProfitMarginSlider } from "@/components/ProfitMarginSlider";
@@ -8,13 +9,16 @@ import { usePdfProcessing } from "./estimate/usePdfProcessing";
 import { useEstimateGeneration } from "./estimate/useEstimateGeneration";
 
 const EstimateGenerator = () => {
+  const { toast } = useToast();
   const [measurements, setMeasurements] = useState<RoofMeasurements | null>(null);
   const [profitMargin, setProfitMargin] = useState(25);
   const [selectedCategory, setSelectedCategory] = useState<RoofingCategory | null>(null);
   const [estimateItems, setEstimateItems] = useState<EstimateItem[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
 
-  const processPdfMutation = usePdfProcessing(setMeasurements);
+  const processPdfMutation = usePdfProcessing({
+    onSuccess: (measurements) => setMeasurements(measurements)
+  });
   
   const generateEstimateMutation = useEstimateGeneration({
     onSuccess: (items, price) => {
@@ -56,7 +60,7 @@ const EstimateGenerator = () => {
           </div>
         ) : !measurements ? (
           <EstimateUploadSection
-            onMeasurementsExtracted={processPdfMutation.mutate}
+            onFileAccepted={processPdfMutation.mutate}
             isProcessing={processPdfMutation.isPending}
           />
         ) : (
