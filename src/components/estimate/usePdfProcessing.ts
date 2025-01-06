@@ -12,7 +12,12 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
 
   return useMutation({
     mutationFn: async (file: File): Promise<ProcessedPdfData> => {
-      return processPdfReport(file);
+      const data = await processPdfReport(file);
+      return {
+        totalArea: data.totalArea,
+        pitch: data.pitchBreakdown[0]?.pitch || "4/12",
+        suggestedWaste: data.suggestedWaste
+      };
     },
     onSuccess: (data: ProcessedPdfData) => {
       const formattedMeasurements: RoofMeasurements = {
