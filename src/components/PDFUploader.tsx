@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Loader2 } from "lucide-react"
+import { Loader2, Download } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { EstimatePreview } from './EstimatePreview'
 import { PRICING } from '@/config/pricing'
 
 interface Measurements {
@@ -52,6 +51,7 @@ export function PDFUploader() {
   const [isLoading, setIsLoading] = useState(false)
   const [profitMargin, setProfitMargin] = useState(25)
   const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [selectedRoofingType, setSelectedRoofingType] = useState('SHINGLE')
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -66,6 +66,7 @@ export function PDFUploader() {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('profitMargin', profitMargin.toString())
+    formData.append('roofingType', selectedRoofingType)
 
     try {
       const response = await fetch(
@@ -127,7 +128,7 @@ export function PDFUploader() {
 
     return [
       {
-        description: 'SHINGLE Material',
+        description: `${selectedRoofingType} Material`,
         quantity: squares,
         unit: 'sq ft',
         unitPrice: PRICING.MATERIALS.shingles,
@@ -180,47 +181,42 @@ export function PDFUploader() {
   const totalPrice = items.reduce((sum, item) => sum + item.total, 0)
 
   return (
-    <div className="space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload EagleView Report</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <div>
-              <Label htmlFor="profitMargin">Profit Margin (%)</Label>
-              <Input
-                id="profitMargin"
-                type="number"
-                value={profitMargin}
-                onChange={(e) => setProfitMargin(Number(e.target.value))}
-                className="w-32"
-                min="0"
-                max="100"
-                disabled={isLoading}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="pdfUpload">Upload EagleView PDF</Label>
-              <Input
-                id="pdfUpload"
-                type="file"
-                accept=".pdf"
-                onChange={handleUpload}
-                disabled={isLoading}
-              />
-            </div>
+    <div className="space-y-6">
+      <Card className="p-6">
+        <div className="space-y-6">
+          <div>
+            <Label htmlFor="profitMargin">Profit Margin (%)</Label>
+            <Input
+              id="profitMargin"
+              type="number"
+              value={profitMargin}
+              onChange={(e) => setProfitMargin(Number(e.target.value))}
+              className="w-32"
+              min="0"
+              max="100"
+              disabled={isLoading}
+            />
           </div>
-        </CardContent>
+
+          <div>
+            <Label htmlFor="pdfUpload">Upload EagleView PDF</Label>
+            <Input
+              id="pdfUpload"
+              type="file"
+              accept=".pdf"
+              onChange={handleUpload}
+              disabled={isLoading}
+            />
+          </div>
+        </div>
       </Card>
 
       {isLoading && (
-        <Card>
-          <CardContent className="flex items-center justify-center p-6">
+        <Card className="p-6">
+          <div className="flex items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin mr-2" />
             <span>{status}</span>
-          </CardContent>
+          </div>
         </Card>
       )}
 
@@ -242,51 +238,124 @@ export function PDFUploader() {
       )}
 
       {result && !error && (
-        <div className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>PDF Extraction Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {Object.entries(result.extractionStatus).map(([key, success]) => (
-                  <div key={key} className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${success ? 'bg-green-500' : 'bg-gray-300'}`} />
-                    <span className="text-sm">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                  </div>
-                ))}
+        <>
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold mb-4">Select Roofing Type</h2>
+            <div className="flex gap-4">
+              <Button
+                variant={selectedRoofingType === 'SHINGLE' ? 'default' : 'outline'}
+                onClick={() => setSelectedRoofingType('SHINGLE')}
+              >
+                SHINGLE
+              </Button>
+              <Button
+                variant={selectedRoofingType === 'TILE' ? 'default' : 'outline'}
+                onClick={() => setSelectedRoofingType('TILE')}
+              >
+                TILE
+              </Button>
+              <Button
+                variant={selectedRoofingType === 'METAL' ? 'default' : 'outline'}
+                onClick={() => setSelectedRoofingType('METAL')}
+              >
+                METAL
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Estimate Preview</h2>
+              <Button variant="outline" size="sm" onClick={handleExportPdf}>
+                <Download className="h-4 w-4 mr-2" />
+                Export PDF
+              </Button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2">Description</th>
+                    <th className="text-right py-2">Quantity</th>
+                    <th className="text-right py-2">Unit</th>
+                    <th className="text-right py-2">Unit Price</th>
+                    <th className="text-right py-2">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, index) => (
+                    <tr key={index} className="border-b">
+                      <td className="py-2">{item.description}</td>
+                      <td className="text-right">{item.quantity}</td>
+                      <td className="text-right">{item.unit}</td>
+                      <td className="text-right">${item.unitPrice.toFixed(2)}</td>
+                      <td className="text-right">${item.total.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                  <tr className="font-bold">
+                    <td colSpan={4} className="text-right py-2">Total</td>
+                    <td className="text-right py-2">${totalPrice.toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold mb-4">PDF Extraction Details</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {Object.entries(result.measurements).map(([key, value]) => (
+                <div key={key} className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${value ? 'bg-green-500' : 'bg-gray-300'}`} />
+                  <span className="text-sm font-medium">{key.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                  <span className="text-sm">{value || '0'}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold mb-4">Calculate Roof Estimate</h2>
+            <div className="space-y-4">
+              <div>
+                <Label>Roofing Type</Label>
+                <select className="w-full border rounded p-2">
+                  <option>Select roofing type</option>
+                </select>
               </div>
-            </CardContent>
+              <div>
+                <Label>Roof Pitch</Label>
+                <select className="w-full border rounded p-2">
+                  <option>Select pitch</option>
+                </select>
+              </div>
+              <div>
+                <Label>Total Area (sq ft)</Label>
+                <Input placeholder="Enter total area" />
+              </div>
+              <div>
+                <Label>Waste Percentage (%)</Label>
+                <Input defaultValue="12" />
+              </div>
+              <div>
+                <Label>Number of Plumbing Boots</Label>
+                <Input defaultValue="0" />
+              </div>
+              <div>
+                <Label>Number of 4" Goosenecks</Label>
+                <Input defaultValue="0" />
+              </div>
+              <div>
+                <Label>Number of 10" Goosenecks</Label>
+                <Input defaultValue="0" />
+              </div>
+              <div>
+                <Label>Number of Skylights</Label>
+                <Input defaultValue="0" />
+              </div>
+            </div>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Measurements</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {Object.entries(result.measurements).map(([key, value]) => (
-                  <div key={key} className="space-y-1">
-                    <dt className="text-sm font-medium text-gray-500">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </dt>
-                    <dd className="text-sm">
-                      {value || 'Not found'}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </CardContent>
-          </Card>
-
-          <EstimatePreview
-            items={items}
-            totalPrice={totalPrice}
-            onExportPdf={handleExportPdf}
-          />
-        </div>
+        </>
       )}
     </div>
   )
