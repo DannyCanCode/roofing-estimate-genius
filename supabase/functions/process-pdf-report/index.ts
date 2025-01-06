@@ -9,19 +9,23 @@ const corsHeaders = {
 async function extractTextFromPdf(pdfBuffer: ArrayBuffer): Promise<string> {
   try {
     console.log('Starting PDF parsing...');
-    const uint8Array = new Uint8Array(pdfBuffer);
-    const data = await pdfParse(uint8Array);
+    // Convert ArrayBuffer to Buffer for pdf-parse
+    const buffer = new Uint8Array(pdfBuffer);
+    console.log('Buffer created, length:', buffer.length);
+    
+    const data = await pdfParse(buffer);
+    console.log('PDF parsed, text length:', data.text?.length);
     
     if (!data.text || data.text.length === 0) {
       throw new Error('No text content could be extracted');
     }
 
-    console.log('Successfully extracted text, length:', data.text.length);
+    // Log a sample of the extracted text for debugging
     console.log('First 500 characters:', data.text.substring(0, 500));
     
     return data.text;
   } catch (error) {
-    console.error('Error parsing PDF:', error);
+    console.error('Error in PDF parsing:', error);
     throw new Error('Failed to extract text from PDF. Please ensure this is a text-based PDF and not a scanned document.');
   }
 }
@@ -72,6 +76,7 @@ serve(async (req) => {
 
     console.log('Processing file:', file.name, 'Size:', file.size);
     const arrayBuffer = await file.arrayBuffer();
+    console.log('File converted to ArrayBuffer, size:', arrayBuffer.byteLength);
     
     // Extract text from PDF
     console.log('Extracting text from PDF...');
