@@ -19,7 +19,16 @@ const EstimateGenerator = () => {
   const processPdfMutation = useMutation({
     mutationFn: processPdfReport,
     onSuccess: (data) => {
-      setMeasurements(data);
+      // Transform the measurements to include pitchBreakdown
+      const formattedMeasurements: RoofMeasurements = {
+        totalArea: data.totalArea,
+        pitchBreakdown: [{
+          pitch: data.pitch,
+          area: data.totalArea
+        }],
+        suggestedWaste: data.suggestedWaste
+      };
+      setMeasurements(formattedMeasurements);
       toast({
         title: "PDF Processed Successfully",
         description: "Your roof measurements have been extracted.",
@@ -56,7 +65,8 @@ const EstimateGenerator = () => {
       setEstimateItems(items);
       setTotalPrice(data.totalPrice);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error generating estimate:', error);
       toast({
         title: "Error Generating Estimate",
         description: "Failed to generate the estimate. Please try again.",
