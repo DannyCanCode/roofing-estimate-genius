@@ -5,7 +5,7 @@ import { ProfitMarginSlider } from "@/components/ProfitMarginSlider";
 import { EstimatePreview } from "@/components/EstimatePreview";
 import { RoofingCategorySelector, RoofingCategory } from "@/components/RoofingCategorySelector";
 import { processPdfReport, generateEstimate } from "@/services/api";
-import { RoofMeasurements, EstimateItem } from "@/types/estimate";
+import { RoofMeasurements, EstimateItem, ProcessedPdfData } from "@/types/estimate";
 import { useToast } from "@/hooks/use-toast";
 
 const EstimateGenerator = () => {
@@ -18,7 +18,7 @@ const EstimateGenerator = () => {
 
   const processPdfMutation = useMutation({
     mutationFn: processPdfReport,
-    onSuccess: (data) => {
+    onSuccess: (data: ProcessedPdfData) => {
       // Transform the measurements to include pitchBreakdown
       const formattedMeasurements: RoofMeasurements = {
         totalArea: data.totalArea,

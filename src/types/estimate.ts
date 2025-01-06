@@ -38,3 +38,9 @@ export interface Estimate {
   totalPrice: number;
   category: RoofingCategory;
 }
+
+export interface ProcessedPdfData {
+  totalArea: number;
+  pitch: string;
+  suggestedWaste?: number;
+}
