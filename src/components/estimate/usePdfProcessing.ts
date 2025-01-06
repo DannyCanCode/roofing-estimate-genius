@@ -21,10 +21,17 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
           throw new Error('Invalid or missing total area in PDF');
         }
 
+        // Get the pitch from either pitchBreakdown or the direct pitch field
+        const defaultPitch = "4/12";
+        const pitch = data.pitchBreakdown?.[0]?.pitch || defaultPitch;
+
         // Ensure we have the required data with fallbacks
         const processedData: ProcessedPdfData = {
           totalArea: data.totalArea,
-          pitch: data.pitchBreakdown?.[0]?.pitch || data.pitch || "4/12",
+          pitchBreakdown: [{
+            pitch: pitch,
+            area: data.totalArea
+          }],
           suggestedWaste: data.suggestedWaste || 15,
           // Add all the raw data fields
           ...data
@@ -42,7 +49,7 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
       const formattedMeasurements: RoofMeasurements = {
         totalArea: data.totalArea,
         pitchBreakdown: [{
-          pitch: data.pitch,
+          pitch: data.pitchBreakdown[0].pitch,
           area: data.totalArea
         }],
         suggestedWaste: data.suggestedWaste
