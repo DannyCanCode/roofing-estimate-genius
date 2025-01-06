@@ -13,14 +13,46 @@ async function extractMeasurements(pdfBytes: ArrayBuffer): Promise<any> {
     const pages = pdfDoc.getPages();
     console.log(`Processing PDF with ${pages.length} pages`);
 
-    // Mock measurements for testing
-    // In production, you would parse actual measurements from the PDF
+    // Extract text content from all pages
+    const textContent = pages.map(page => page.getTextContent()).join(' ');
+    console.log('Extracted text content:', textContent);
+
+    // Regular expressions for extracting measurements
+    const totalAreaRegex = /Total Area:\s*([\d,]+)\s*sq\s*ft/i;
+    const pitchRegex = /(\d+\/\d+)\s*pitch.*?(\d+(?:,\d+)?)\s*sq\s*ft/gi;
+    const wasteRegex = /Suggested\s+Waste:\s*(\d+)%/i;
+    const addressRegex = /Property\s+Address:\s*([^\n]+)/i;
+
+    // Extract measurements
+    const totalAreaMatch = textContent.match(totalAreaRegex);
+    const totalArea = totalAreaMatch ? 
+      parseFloat(totalAreaMatch[1].replace(',', '')) : 0;
+
+    // Extract pitch breakdown
+    const pitchBreakdown = [];
+    let pitchMatch;
+    while ((pitchMatch = pitchRegex.exec(textContent)) !== null) {
+      pitchBreakdown.push({
+        pitch: pitchMatch[1],
+        area: parseFloat(pitchMatch[2].replace(',', ''))
+      });
+    }
+
+    // Extract waste percentage
+    const wasteMatch = textContent.match(wasteRegex);
+    const suggestedWaste = wasteMatch ? 
+      parseInt(wasteMatch[1]) : 12; // Default to 12% if not found
+
+    // Extract address
+    const addressMatch = textContent.match(addressRegex);
+    const propertyAddress = addressMatch ? addressMatch[1].trim() : '';
+
     const measurements = {
-      totalArea: 2500,
-      pitchBreakdown: [
-        { pitch: "4/12", area: 1000 },
-        { pitch: "6/12", area: 1500 }
-      ]
+      totalArea,
+      pitchBreakdown,
+      suggestedWaste,
+      propertyAddress,
+      rawText: textContent // Store for debugging
     };
 
     console.log('Extracted measurements:', measurements);
