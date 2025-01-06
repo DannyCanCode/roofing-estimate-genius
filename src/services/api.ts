@@ -8,6 +8,8 @@ interface GenerateEstimateParams {
 }
 
 export async function processPdfReport(file: File): Promise<RoofMeasurements> {
+  console.log('Starting PDF processing:', file.name);
+  
   const formData = new FormData();
   formData.append("file", file);
 
@@ -17,9 +19,15 @@ export async function processPdfReport(file: File): Promise<RoofMeasurements> {
 
   if (error) {
     console.error('Error processing PDF:', error);
-    throw new Error("Failed to process PDF report");
+    throw new Error(error.message || "Failed to process PDF report");
   }
 
+  if (!data) {
+    console.error('No data returned from PDF processing');
+    throw new Error("No data returned from PDF processing");
+  }
+
+  console.log('PDF processing successful:', data);
   return data;
 }
 
@@ -59,5 +67,6 @@ export async function generateEstimate({
     throw error;
   }
 
+  console.log('Estimate generated successfully:', data);
   return data;
 }

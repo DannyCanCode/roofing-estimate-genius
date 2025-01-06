@@ -45,6 +45,10 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
 
       try {
         console.log("Starting file processing:", file.name);
+        toast({
+          title: "Processing PDF",
+          description: "Your file is being processed...",
+        });
         await onFileAccepted(file);
         console.log("File processing completed:", file.name);
       } catch (error) {
