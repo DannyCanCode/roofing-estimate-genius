@@ -8,15 +8,18 @@ const corsHeaders = {
 }
 
 const extractMeasurements = (text: string) => {
-  console.log('Raw text from PDF:', text.substring(0, 500)); // Log first 500 chars for debugging
+  console.log('Starting PDF text extraction...');
+  console.log('First 1000 chars of PDF:', text.substring(0, 1000));
   
   const patterns = {
-    // Basic Measurements - Updated patterns to be more flexible
-    total_area: /(?:Total\s*(?:Roof)?\s*Area|Total Area \(All Pitches\)|Total\s*Area)\s*[=:]\s*([\d,\.]+)/i,
-    total_roof_facets: /Total Roof Facets\s*=\s*(\d+)/,
-    predominant_pitch: /Predominant Pitch\s*=\s*(\d+)\/12/,
-    number_of_stories: /Number of Stories\s*<=\s*(\d+)/,
-    
+    // Basic Measurements - Multiple patterns for total area
+    total_area: [
+      /Total\s*Area\s*[=:]\s*([\d,\.]+)/i,
+      /Total\s*Roof\s*Area\s*[=:]\s*([\d,\.]+)/i,
+      /Total Area \(All Pitches\)\s*[=:]\s*([\d,\.]+)/i,
+      /Total\s*=\s*([\d,\.]+)/i,
+      /Roof\s*Area\s*[=:]\s*([\d,\.]+)/i
+    ],
     // Length Measurements
     ridges: /Ridges\s*=\s*(\d+)\s*ft\s*\((\d+)\s*Ridges\)/,
     hips: /Hips\s*=\s*(\d+)\s*ft\s*\((\d+)\s*Hips\)/,
@@ -51,19 +54,36 @@ const extractMeasurements = (text: string) => {
 
   const measurements: any = {}
   
-  for (const [key, pattern] of Object.entries(patterns)) {
+  // Try all total area patterns first
+  let totalAreaFound = false
+  for (const pattern of patterns.total_area) {
+    console.log('Trying pattern:', pattern);
     const match = text.match(pattern)
     if (match) {
-      if (key === 'total_area') {
-        const value = match[1].replace(/,/g, '')
-        const area = parseFloat(value)
-        if (isNaN(area) || area <= 0) {
-          console.error('Invalid total area found:', value)
-          throw new Error('Invalid total area value extracted from PDF')
-        }
-        measurements[key] = area
-        console.log('Successfully extracted total area:', area)
-      } else if (key === 'areas_per_pitch') {
+      const value = match[1].replace(/,/g, '')
+      const area = parseFloat(value)
+      console.log('Found potential total area:', area);
+      if (!isNaN(area) && area > 0) {
+        measurements.total_area = area
+        totalAreaFound = true
+        console.log('Successfully extracted total area:', area);
+        break
+      }
+    }
+  }
+
+  if (!totalAreaFound) {
+    console.error('Could not find valid total area in text');
+    throw new Error('Could not extract roof area from PDF. Please make sure you are uploading a valid EagleView report.');
+  }
+
+  // Process other measurements
+  for (const [key, pattern] of Object.entries(patterns)) {
+    if (key === 'total_area') continue; // Skip as we already handled it
+    
+    const match = text.match(pattern as RegExp)
+    if (match) {
+      if (key === 'areas_per_pitch') {
         const pitchText = match[1]
         const pitchPattern = /(\d+)\/12\s*=?\s*([\d,]+)(?:\s*sq\s*ft)?\s*\(?(\d+\.?\d*)%\)?/g
         const pitches = []
@@ -101,15 +121,7 @@ const extractMeasurements = (text: string) => {
         const value = match[1].replace(/,/g, '')
         measurements[key] = value.includes('.') || !isNaN(value) ? parseFloat(value) : value
       }
-    } else if (key === 'total_area') {
-      console.error('Total area pattern not found in text')
-      throw new Error('Could not find total area in PDF')
     }
-  }
-
-  if (!measurements.total_area) {
-    console.error('No total area found in measurements')
-    throw new Error('Could not extract roof area from PDF')
   }
 
   // Calculate combined ridges/hips total
@@ -126,16 +138,16 @@ const extractMeasurements = (text: string) => {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Processing PDF request...')
+    console.log('Processing PDF request...');
     const formData = await req.formData()
     const file = formData.get('file')
     
     if (!file || !(file instanceof File)) {
-      console.error('No PDF file provided in request')
+      console.error('No PDF file provided in request');
       return new Response(
         JSON.stringify({ error: 'No PDF file provided' }),
         { 
@@ -148,17 +160,17 @@ serve(async (req) => {
       )
     }
 
-    console.log('Converting file to ArrayBuffer:', file.name, 'Size:', file.size)
+    console.log('Converting file to ArrayBuffer:', file.name, 'Size:', file.size);
     const arrayBuffer = await file.arrayBuffer()
     const uint8Array = new Uint8Array(arrayBuffer)
     
-    console.log('Parsing PDF content...')
+    console.log('Parsing PDF content...');
     const data = await pdfParse(uint8Array)
-    console.log('PDF parsed successfully, text length:', data.text.length)
+    console.log('PDF parsed successfully, text length:', data.text.length);
     
-    console.log('Extracting measurements from text...')
+    console.log('Extracting measurements from text...');
     const measurements = extractMeasurements(data.text)
-    console.log('Measurements extracted:', Object.keys(measurements).length, 'fields found')
+    console.log('Measurements extracted:', Object.keys(measurements).length, 'fields found');
 
     return new Response(
       JSON.stringify({
@@ -175,7 +187,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error processing PDF:', error)
+    console.error('Error processing PDF:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
