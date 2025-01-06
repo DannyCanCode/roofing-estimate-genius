@@ -8,9 +8,11 @@ const corsHeaders = {
 }
 
 const extractMeasurements = (text: string) => {
+  console.log('Raw text from PDF:', text.substring(0, 500)); // Log first 500 chars for debugging
+  
   const patterns = {
-    // Basic Measurements
-    total_area: /Total Area \(All Pitches\)\s*=\s*([\d,]+)/,
+    // Basic Measurements - Updated patterns to be more flexible
+    total_area: /(?:Total\s*(?:Roof)?\s*Area|Total Area \(All Pitches\)|Total\s*Area)\s*[=:]\s*([\d,\.]+)/i,
     total_roof_facets: /Total Roof Facets\s*=\s*(\d+)/,
     predominant_pitch: /Predominant Pitch\s*=\s*(\d+)\/12/,
     number_of_stories: /Number of Stories\s*<=\s*(\d+)/,
@@ -52,7 +54,16 @@ const extractMeasurements = (text: string) => {
   for (const [key, pattern] of Object.entries(patterns)) {
     const match = text.match(pattern)
     if (match) {
-      if (key === 'areas_per_pitch') {
+      if (key === 'total_area') {
+        const value = match[1].replace(/,/g, '')
+        const area = parseFloat(value)
+        if (isNaN(area) || area <= 0) {
+          console.error('Invalid total area found:', value)
+          throw new Error('Invalid total area value extracted from PDF')
+        }
+        measurements[key] = area
+        console.log('Successfully extracted total area:', area)
+      } else if (key === 'areas_per_pitch') {
         const pitchText = match[1]
         const pitchPattern = /(\d+)\/12\s*=?\s*([\d,]+)(?:\s*sq\s*ft)?\s*\(?(\d+\.?\d*)%\)?/g
         const pitches = []
@@ -87,10 +98,18 @@ const extractMeasurements = (text: string) => {
       } else if (key === 'suggested_waste') {
         measurements[key] = true
       } else {
-        const value = match[1].replace(',', '')
+        const value = match[1].replace(/,/g, '')
         measurements[key] = value.includes('.') || !isNaN(value) ? parseFloat(value) : value
       }
+    } else if (key === 'total_area') {
+      console.error('Total area pattern not found in text')
+      throw new Error('Could not find total area in PDF')
     }
+  }
+
+  if (!measurements.total_area) {
+    console.error('No total area found in measurements')
+    throw new Error('Could not extract roof area from PDF')
   }
 
   // Calculate combined ridges/hips total
@@ -160,7 +179,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: error.toString()
+        details: error.toString(),
+        stack: error.stack
       }),
       { 
         status: 500, 
