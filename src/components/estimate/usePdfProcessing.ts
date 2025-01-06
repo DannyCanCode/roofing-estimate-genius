@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProcessedPdfData, RoofMeasurements } from "@/types/estimate";
 
 interface PdfProcessingCallbacks {
-  onSuccess: (measurements: RoofMeasurements) => void;
+  onSuccess: (measurements: RoofMeasurements, rawData: Record<string, any>) => void;
 }
 
 export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
@@ -21,7 +21,9 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
         const processedData: ProcessedPdfData = {
           totalArea: data.totalArea || 0,
           pitch: data.pitchBreakdown?.[0]?.pitch || "4/12",
-          suggestedWaste: data.suggestedWaste || 15
+          suggestedWaste: data.suggestedWaste || 15,
+          // Add all the raw data fields
+          ...data
         };
 
         console.log('Processed data:', processedData);
@@ -41,7 +43,7 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
         }],
         suggestedWaste: data.suggestedWaste
       };
-      onSuccess(formattedMeasurements);
+      onSuccess(formattedMeasurements, data);
       toast({
         title: "PDF Processed Successfully",
         description: "Your roof measurements have been extracted.",

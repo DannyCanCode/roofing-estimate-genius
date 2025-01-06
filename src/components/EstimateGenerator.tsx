@@ -7,6 +7,7 @@ import { RoofMeasurements, EstimateItem } from "@/types/estimate";
 import { EstimateUploadSection } from "./estimate/EstimateUploadSection";
 import { usePdfProcessing } from "./estimate/usePdfProcessing";
 import { useEstimateGeneration } from "./estimate/useEstimateGeneration";
+import { PdfExtractionDetails } from "./PdfExtractionDetails";
 
 const EstimateGenerator = () => {
   const { toast } = useToast();
@@ -15,9 +16,13 @@ const EstimateGenerator = () => {
   const [selectedCategory, setSelectedCategory] = useState<RoofingCategory | null>(null);
   const [estimateItems, setEstimateItems] = useState<EstimateItem[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [rawPdfData, setRawPdfData] = useState<Record<string, any> | null>(null);
 
   const processPdfMutation = usePdfProcessing({
-    onSuccess: (measurements) => setMeasurements(measurements)
+    onSuccess: (measurements, rawData) => {
+      setMeasurements(measurements);
+      setRawPdfData(rawData);
+    }
   });
   
   const generateEstimateMutation = useEstimateGeneration({
@@ -64,11 +69,14 @@ const EstimateGenerator = () => {
             isProcessing={processPdfMutation.isPending}
           />
         ) : (
-          <EstimatePreview
-            items={estimateItems}
-            totalPrice={totalPrice}
-            onExportPdf={handleExportPdf}
-          />
+          <>
+            <EstimatePreview
+              items={estimateItems}
+              totalPrice={totalPrice}
+              onExportPdf={handleExportPdf}
+            />
+            {rawPdfData && <PdfExtractionDetails data={rawPdfData} />}
+          </>
         )}
       </div>
 
