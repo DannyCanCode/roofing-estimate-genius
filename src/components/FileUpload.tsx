@@ -18,13 +18,17 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
       try {
         await FileUploadService.validateFile(file);
 
+        // Create a blob from the file to ensure proper data transfer
+        const blob = new Blob([await file.arrayBuffer()], { type: 'application/pdf' });
+        const pdfFile = new File([blob], file.name, { type: 'application/pdf' });
+
         toast({
           title: "Processing PDF",
           description: "Your file is being processed...",
         });
 
-        await FileUploadService.uploadFile(file);
-        await onFileAccepted(file);
+        await FileUploadService.uploadFile(pdfFile);
+        await onFileAccepted(pdfFile);
         
         console.log("File processing completed:", file.name);
       } catch (error) {
