@@ -6,9 +6,11 @@ const corsHeaders = {
 };
 
 const REGEX_PATTERNS = {
-  // Primary patterns for total area
+  // Primary patterns for total area with more variations
   totalArea: /Total Area \(All Pitches\)\s*=\s*([\d,]+)/i,
   alternativeTotalArea: /Total\s*(?:Roof)?\s*Area\s*[:=]?\s*([\d,]+)/i,
+  fallbackTotalArea: /(?:Total|Roof)\s*(?:Area|Surface)\s*[:=]?\s*([\d,]+)/i,
+  areaInTable: /Area\s*\(Sq\s*ft\)\s*\n\s*([\d,]+)/i,
   
   // Pitch patterns
   predominantPitch: /Predominant Pitch\s*=\s*(\d+)\/12/i,
@@ -112,16 +114,24 @@ serve(async (req) => {
     console.log('Content length:', fileContent.length);
     console.log('First 1000 chars:', fileContent.substring(0, 1000));
 
-    // Extract total area using multiple patterns
+    // Try all total area patterns
     let totalArea = extractNumber(fileContent, REGEX_PATTERNS.totalArea);
     if (totalArea === 0) {
       console.log('Trying alternative total area pattern...');
       totalArea = extractNumber(fileContent, REGEX_PATTERNS.alternativeTotalArea);
     }
+    if (totalArea === 0) {
+      console.log('Trying fallback total area pattern...');
+      totalArea = extractNumber(fileContent, REGEX_PATTERNS.fallbackTotalArea);
+    }
+    if (totalArea === 0) {
+      console.log('Trying to find area in table...');
+      totalArea = extractNumber(fileContent, REGEX_PATTERNS.areaInTable);
+    }
 
     if (!totalArea || totalArea <= 0) {
       console.error('No valid total area found in content');
-      throw new Error('Could not find total roof area in PDF. Please make sure you are uploading a valid EagleView report.');
+      throw new Error('Could not find total roof area in PDF. Please make sure you are uploading a valid EagleView report. If this is an EagleView report, try selecting and copying all text from the PDF first to ensure it\'s not scanned or image-based.');
     }
 
     console.log('Successfully extracted total area:', totalArea);
