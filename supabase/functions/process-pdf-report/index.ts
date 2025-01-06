@@ -1,11 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import * as pdfParse from 'npm:pdf-parse'
+import pdfParse from 'npm:pdf-parse@1.1.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
 const extractMeasurements = (text: string) => {
   const patterns = {
@@ -111,10 +111,12 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Processing PDF request...')
     const formData = await req.formData()
     const file = formData.get('file')
     
     if (!file || !(file instanceof File)) {
+      console.error('No PDF file provided in request')
       return new Response(
         JSON.stringify({ error: 'No PDF file provided' }),
         { 
@@ -127,21 +129,17 @@ serve(async (req) => {
       )
     }
 
-    console.log('Processing PDF file:', file.name, 'Size:', file.size);
-
-    // Convert File to ArrayBuffer
+    console.log('Converting file to ArrayBuffer:', file.name, 'Size:', file.size)
     const arrayBuffer = await file.arrayBuffer()
     const uint8Array = new Uint8Array(arrayBuffer)
     
-    // Parse PDF
+    console.log('Parsing PDF content...')
     const data = await pdfParse(uint8Array)
+    console.log('PDF parsed successfully, text length:', data.text.length)
     
-    console.log('PDF text extracted, length:', data.text.length);
-    
-    // Extract measurements from text
+    console.log('Extracting measurements from text...')
     const measurements = extractMeasurements(data.text)
-    
-    console.log('Measurements extracted:', measurements);
+    console.log('Measurements extracted:', Object.keys(measurements).length, 'fields found')
 
     return new Response(
       JSON.stringify({
@@ -158,7 +156,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error processing PDF:', error);
+    console.error('Error processing PDF:', error)
     return new Response(
       JSON.stringify({ 
         error: error.message,
