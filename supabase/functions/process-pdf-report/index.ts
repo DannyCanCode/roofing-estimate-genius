@@ -1,54 +1,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib';
+import * as pdfParse from 'npm:pdf-parse';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function extractTextFromPdf(pdfBytes: ArrayBuffer): Promise<string> {
-  const pdfDoc = await PDFDocument.load(pdfBytes);
-  const pages = pdfDoc.getPages();
-  console.log(`Processing PDF with ${pages.length} pages`);
-
-  let textContent = '';
-  let textFound = false;
-
-  for (let i = 0; i < pages.length; i++) {
-    const page = pages[i];
-    console.log(`Processing page ${i + 1}`);
-
-    // Try to extract text from form fields
-    const form = page.doc.getForm();
-    const fields = form.getFields();
-    for (const field of fields) {
-      const text = field.getText();
-      if (text) {
-        textContent += text + ' ';
-        textFound = true;
-      }
+async function extractTextFromPdf(pdfBuffer: ArrayBuffer): Promise<string> {
+  try {
+    console.log('Starting PDF parsing...');
+    const data = await pdfParse(pdfBuffer);
+    
+    if (!data.text || data.text.length === 0) {
+      throw new Error('No text content could be extracted');
     }
 
-    // Try to extract text from page content streams
-    try {
-      const pageText = await page.doc.getPage(i).getText();
-      if (pageText) {
-        textContent += pageText + ' ';
-        textFound = true;
-      }
-    } catch (error) {
-      console.error(`Error extracting text from page ${i + 1}:`, error);
-    }
+    console.log('Successfully extracted text, length:', data.text.length);
+    console.log('First 500 characters:', data.text.substring(0, 500));
+    
+    return data.text;
+  } catch (error) {
+    console.error('Error parsing PDF:', error);
+    throw new Error('Failed to extract text from PDF. Please ensure this is a text-based PDF and not a scanned document.');
   }
-
-  if (!textFound) {
-    throw new Error('No text content could be extracted. This might be a scanned or image-based PDF.');
-  }
-
-  console.log('Extracted text length:', textContent.length);
-  console.log('Sample of extracted text:', textContent.substring(0, 200));
-  
-  return textContent.replace(/\s+/g, ' ').trim();
 }
 
 function findTotalArea(text: string): number {
