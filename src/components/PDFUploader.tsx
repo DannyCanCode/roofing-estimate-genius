@@ -84,7 +84,8 @@ export function PDFUploader() {
           method: 'POST',
           body: formData,
           headers: {
-            'Authorization': `Bearer ${supabaseKey}`
+            'Authorization': `Bearer ${supabaseKey}`,
+            'apikey': supabaseKey
           }
         }
       )
