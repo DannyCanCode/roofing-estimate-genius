@@ -28,7 +28,14 @@ interface Measurements {
 interface ProcessingResult {
   measurements: Measurements
   extractionStatus: Record<string, boolean>
-  pricing: any // Using the type from EstimateCalculator
+  pricing: any
+  debug?: {
+    textSample: string
+    pdfInfo: {
+      pageCount: number
+      fileSize: number
+    }
+  }
 }
 
 export function PDFUploader() {
@@ -37,6 +44,7 @@ export function PDFUploader() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [profitMargin, setProfitMargin] = useState(25)
+  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -45,6 +53,8 @@ export function PDFUploader() {
     setStatus('Processing PDF...')
     setError(null)
     setIsLoading(true)
+    setResult(null)
+    setDebugInfo(null)
     
     const formData = new FormData()
     formData.append('file', file)
@@ -62,18 +72,30 @@ export function PDFUploader() {
         }
       )
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
       const data = await response.json()
       
       if (data.error) {
         setError(data.error)
         setStatus('Error processing PDF')
+        setDebugInfo(data.debug)
+        console.error('Processing error:', data.error)
         console.error('Debug info:', data.debug)
       } else {
-        setResult(data)
-        setStatus('PDF processed successfully')
+        if (!data.measurements?.totalRoofArea) {
+          setError('Could not extract roof area from PDF. Please make sure you uploaded an EagleView report.')
+          setDebugInfo(data.debug)
+        } else {
+          setResult(data)
+          setStatus('PDF processed successfully')
+        }
       }
     } catch (error: any) {
-      setError(error.message)
+      console.error('Upload error:', error)
+      setError(error.message || 'Error uploading PDF')
       setStatus('Error uploading PDF')
     } finally {
       setIsLoading(false)
@@ -95,6 +117,7 @@ export function PDFUploader() {
               className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               min="0"
               max="100"
+              disabled={isLoading}
             />
           </div>
         </div>
@@ -111,18 +134,37 @@ export function PDFUploader() {
             file:rounded-full file:border-0
             file:text-sm file:font-semibold
             file:bg-blue-50 file:text-blue-700
-            hover:file:bg-blue-100"
+            hover:file:bg-blue-100
+            disabled:opacity-50"
           disabled={isLoading}
         />
       </div>
 
-      {status && (
-        <div className={`mb-4 text-sm ${error ? 'text-red-600' : 'text-gray-600'}`}>
-          {status}
+      {isLoading && (
+        <div className="flex items-center justify-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <span className="ml-3 text-gray-600">{status}</span>
         </div>
       )}
 
-      {result && (
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+          <h3 className="text-red-700 font-medium mb-2">Error Processing PDF</h3>
+          <p className="text-red-600 text-sm mb-2">{error}</p>
+          {debugInfo && (
+            <div className="mt-4">
+              <details className="text-sm">
+                <summary className="cursor-pointer text-red-700 hover:text-red-800">Show Debug Info</summary>
+                <pre className="mt-2 p-2 bg-red-100 rounded overflow-auto text-xs">
+                  {JSON.stringify(debugInfo, null, 2)}
+                </pre>
+              </details>
+            </div>
+          )}
+        </div>
+      )}
+
+      {result && !error && (
         <div className="space-y-8">
           {/* Extraction Status */}
           <div className="bg-white shadow rounded-lg p-6">
