@@ -4,6 +4,7 @@ export interface RoofMeasurements {
     pitch: string;
     area: number;
   }[];
+  suggestedWaste?: number;
 }
 
 export interface Material {
