@@ -33,9 +33,15 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
         console.log("File processing completed:", file.name);
       } catch (error) {
         console.error("Error processing file:", error);
+        
+        let errorMessage = error instanceof Error ? error.message : "Failed to process file";
+        if (errorMessage.includes('text-based PDF')) {
+          errorMessage = "This appears to be a scanned PDF. Please ensure you are uploading a text-based PDF from EagleView.";
+        }
+        
         toast({
           title: "Error processing file",
-          description: error instanceof Error ? error.message : "Failed to process file",
+          description: errorMessage,
           variant: "destructive",
         });
       }
