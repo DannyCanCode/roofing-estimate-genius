@@ -1,10 +1,30 @@
 export interface Measurements {
-  total_area: number;
-  pitch: number;
-  roof_type: string;
-  waste_percentage?: number;
-  property_address?: string;
-  pitch_breakdown?: { pitch: string; area: number }[];
+  totalArea: number;
+  totalSquares: number;
+  predominantPitch: string;
+  ridgesLength: number;
+  ridgesCount: number;
+  hipsLength: number;
+  hipsCount: number;
+  valleysLength: number;
+  valleysCount: number;
+  rakesLength: number;
+  rakesCount: number;
+  eavesLength: number;
+  eavesCount: number;
+  dripEdgeLength: number;
+  flashingLength: number;
+  flashingCount: number;
+  stepFlashingLength: number;
+  stepFlashingCount: number;
+  totalPenetrationsArea: number;
+  suggestedWaste: number;
+  wasteFactorArea: number;
+  wasteFactorSquares: number;
+  areasPerPitch: Record<string, number>;
+  roofingType: string;
+  structureComplexity: string;
+  wasteNote: string;
 }
 
 export interface ProcessingResult {
