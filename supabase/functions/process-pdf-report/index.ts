@@ -12,25 +12,56 @@ async function extractTextFromPdf(pdfBytes: ArrayBuffer): Promise<string> {
   console.log(`Processing PDF with ${pages.length} pages`);
 
   let textContent = '';
+  let textFound = false;
+
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
-    const text = await page.doc.getForm().getFields().map(field => field.getText()).join(' ');
-    textContent += text + ' ';
-    console.log(`Page ${i + 1} text length: ${text.length} characters`);
+    console.log(`Processing page ${i + 1}`);
+
+    // Try to extract text from form fields
+    const form = page.doc.getForm();
+    const fields = form.getFields();
+    for (const field of fields) {
+      const text = field.getText();
+      if (text) {
+        textContent += text + ' ';
+        textFound = true;
+      }
+    }
+
+    // Try to extract text from page content streams
+    try {
+      const pageText = await page.doc.getPage(i).getText();
+      if (pageText) {
+        textContent += pageText + ' ';
+        textFound = true;
+      }
+    } catch (error) {
+      console.error(`Error extracting text from page ${i + 1}:`, error);
+    }
   }
 
+  if (!textFound) {
+    throw new Error('No text content could be extracted. This might be a scanned or image-based PDF.');
+  }
+
+  console.log('Extracted text length:', textContent.length);
+  console.log('Sample of extracted text:', textContent.substring(0, 200));
+  
   return textContent.replace(/\s+/g, ' ').trim();
 }
 
 function findTotalArea(text: string): number {
-  console.log('Searching for total area in text:', text.substring(0, 500) + '...');
+  console.log('Searching for total area in text');
   
   const patterns = [
     /Total\s*Area\s*(?:\(All\s*Pitches\))?\s*[:=]?\s*([\d,]+)/i,
     /Total\s*Roof\s*Area\s*[:=]?\s*([\d,]+)/i,
     /Roof\s*Area\s*[:=]?\s*([\d,]+)/i,
     /Area\s*\(Sq\s*ft\)\s*[:=]?\s*([\d,]+)/i,
-    /(\d{2,}(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|sqft|sf)/i
+    /(\d{2,}(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|sqft|sf)/i,
+    /Total\s*Square\s*Footage\s*[:=]?\s*([\d,]+)/i,
+    /Total\s*Squares\s*[:=]?\s*([\d,]+)/i
   ];
 
   for (const pattern of patterns) {
@@ -45,7 +76,8 @@ function findTotalArea(text: string): number {
     }
   }
 
-  throw new Error('Could not find total roof area in PDF. Please make sure you are uploading a valid EagleView report. If this is an EagleView report, try selecting and copying all text from the PDF first to ensure it\'s not scanned or image-based.');
+  console.log('No area found with any pattern');
+  throw new Error('Could not find total roof area in PDF. Please make sure you are uploading a valid EagleView report.');
 }
 
 serve(async (req) => {
@@ -69,7 +101,6 @@ serve(async (req) => {
     // Extract text from PDF
     console.log('Extracting text from PDF...');
     const textContent = await extractTextFromPdf(arrayBuffer);
-    console.log('Extracted text length:', textContent.length);
     
     if (textContent.length < 100) {
       console.error('Very little text extracted, might be a scanned PDF');
