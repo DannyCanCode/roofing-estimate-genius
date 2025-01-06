@@ -12,12 +12,6 @@ export class FileUploadService {
   }
 
   static async uploadFile(file: File): Promise<{ filePath: string }> {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error("You must be logged in to upload files");
-    }
-
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
     const filePath = `reports/${fileName}`;
@@ -37,8 +31,7 @@ export class FileUploadService {
         file_path: filePath,
         original_filename: file.name,
         status: 'processing',
-        metadata: {},
-        user_id: user.id
+        metadata: {}
       });
 
     if (dbError) {
