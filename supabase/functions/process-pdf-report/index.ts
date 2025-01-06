@@ -1,81 +1,11 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib'
+import { MeasurementExtractor } from './measurement-extractor.ts'
+import { ProcessingResult } from './types.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-async function extractMeasurements(pdfBytes: ArrayBuffer) {
-  try {
-    const pdfDoc = await PDFDocument.load(pdfBytes);
-    const pages = pdfDoc.getPages();
-    console.log(`Processing PDF with ${pages.length} pages`);
-
-    // Extract text content from all pages
-    let textContent = '';
-    for (let i = 0; i < pages.length; i++) {
-      const page = pages[i];
-      const text = await page.getTextContent();
-      textContent += text + ' ';
-    }
-    console.log('Extracted raw text content');
-
-    // Enhanced regex patterns for better extraction
-    const patterns = {
-      totalArea: /Total\s+Area:\s*([\d,]+)\s*(?:sq\.?\s*ft\.?|sqft)/i,
-      pitches: /(\d+\/\d+)\s*pitch.*?(\d+(?:,\d+)?)\s*(?:sq\.?\s*ft\.?|sqft)/gi,
-      waste: /(?:Suggested|Recommended)\s+Waste:\s*(\d+)%/i,
-      address: /Property\s+Address:\s*([^\n]+)/i,
-      // Add more patterns as needed
-    };
-
-    // Extract measurements with detailed logging
-    console.log('Starting measurement extraction');
-    
-    // Total Area
-    const totalAreaMatch = textContent.match(patterns.totalArea);
-    const totalArea = totalAreaMatch ? 
-      parseFloat(totalAreaMatch[1].replace(/,/g, '')) : 0;
-    console.log('Extracted total area:', totalArea);
-
-    // Pitch Breakdown
-    const pitchBreakdown = [];
-    let pitchMatch;
-    while ((pitchMatch = patterns.pitches.exec(textContent)) !== null) {
-      const pitch = pitchMatch[1];
-      const area = parseFloat(pitchMatch[2].replace(/,/g, ''));
-      pitchBreakdown.push({ pitch, area });
-      console.log(`Found pitch: ${pitch} with area: ${area}`);
-    }
-
-    // Waste Percentage
-    const wasteMatch = textContent.match(patterns.waste);
-    const suggestedWaste = wasteMatch ? 
-      parseInt(wasteMatch[1]) : 12; // Default to 12%
-    console.log('Extracted waste percentage:', suggestedWaste);
-
-    // Property Address
-    const addressMatch = textContent.match(patterns.address);
-    const propertyAddress = addressMatch ? 
-      addressMatch[1].trim() : '';
-    console.log('Extracted property address:', propertyAddress);
-
-    const measurements = {
-      totalArea,
-      pitchBreakdown,
-      suggestedWaste,
-      propertyAddress,
-      extractedText: textContent // Store for debugging
-    };
-
-    console.log('Successfully extracted all measurements:', measurements);
-    return measurements;
-  } catch (error) {
-    console.error('Error in measurement extraction:', error);
-    throw new Error(`Failed to extract measurements: ${error.message}`);
-  }
 }
 
 serve(async (req) => {
@@ -85,6 +15,9 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting PDF processing request');
+    const startTime = Date.now();
+
     const formData = await req.formData();
     const file = formData.get('file');
     
@@ -104,8 +37,9 @@ serve(async (req) => {
     const fileBuffer = await file.arrayBuffer();
     console.log('File buffer size:', fileBuffer.byteLength);
 
-    // Process the PDF file
-    const measurements = await extractMeasurements(fileBuffer);
+    // Extract measurements
+    const extractor = new MeasurementExtractor();
+    const measurements = await extractor.extractMeasurements(fileBuffer);
 
     // Create Supabase client
     const supabase = createClient(
@@ -113,12 +47,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Generate unique filename
+    // Generate unique filename and upload to storage
     const timestamp = new Date().toISOString();
     const fileExt = file.name.split('.').pop();
     const filePath = `${crypto.randomUUID()}-${timestamp}.${fileExt}`;
 
-    // Upload file to Storage
     const { error: uploadError } = await supabase.storage
       .from('eagleview-reports')
       .upload(filePath, file, {
@@ -131,6 +64,16 @@ serve(async (req) => {
       throw new Error('Failed to upload file');
     }
 
+    // Create processing result
+    const result: ProcessingResult = {
+      measurements,
+      metadata: {
+        original_filename: file.name,
+        page_count: 1, // TODO: Get actual page count
+        processing_time: Date.now() - startTime,
+      }
+    };
+
     // Create report record
     const { error: reportError } = await supabase
       .from('reports')
@@ -138,7 +81,7 @@ serve(async (req) => {
         file_path: filePath,
         original_filename: file.name,
         status: 'completed',
-        metadata: measurements,
+        metadata: result,
         processed_text: JSON.stringify(measurements)
       });
 
@@ -147,8 +90,10 @@ serve(async (req) => {
       throw new Error('Failed to create report record');
     }
 
+    console.log('Successfully processed PDF:', result);
+
     return new Response(
-      JSON.stringify(measurements),
+      JSON.stringify(result),
       { 
         headers: { 
           ...corsHeaders,
