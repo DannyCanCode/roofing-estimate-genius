@@ -36,9 +36,16 @@ serve(async (req) => {
     const fileBuffer = await file.arrayBuffer();
     console.log('File buffer size:', fileBuffer.byteLength);
 
-    // Extract measurements
+    // Extract measurements with detailed logging
     const extractor = new MeasurementExtractor();
-    const measurements = await extractor.extractMeasurements(fileBuffer);
+    let measurements;
+    try {
+      measurements = await extractor.extractMeasurements(fileBuffer);
+      console.log('Successfully extracted measurements:', measurements);
+    } catch (error) {
+      console.error('Measurement extraction error:', error);
+      throw new Error(`Failed to extract measurements: ${error.message}`);
+    }
 
     // Create Supabase client
     const supabase = createClient(

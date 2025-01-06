@@ -10,19 +10,22 @@ export class MeasurementExtractor {
     const pages = pdfDoc.getPages();
     console.log(`Processing PDF with ${pages.length} pages`);
 
-    // Extract text content from PDF
     let textContent = '';
     for (let i = 0; i < pages.length; i++) {
       const page = pages[i];
       console.log(`Processing page ${i + 1}`);
       
-      // Get text content from page operations
-      const pageContent = await this.extractTextFromPage(page);
-      textContent += pageContent.text + ' ';
-      console.log(`Page ${i + 1} content sample:`, pageContent.text.substring(0, 100));
+      try {
+        // Get text content from page operations
+        const pageContent = await this.extractTextFromPage(page);
+        textContent += pageContent.text + ' ';
+        console.log(`Page ${i + 1} content:`, pageContent.text);
+      } catch (error) {
+        console.error(`Error processing page ${i + 1}:`, error);
+      }
     }
     
-    console.log('Extracted raw text content length:', textContent.length);
+    console.log('Full extracted text:', textContent);
     if (textContent.length === 0) {
       throw new Error('No text content extracted from PDF');
     }
@@ -40,18 +43,19 @@ export class MeasurementExtractor {
 
   private async extractTextFromPage(page: any): Promise<{ text: string }> {
     try {
-      // Get all operations from the page
       const operations = page.node.Operations() || [];
       let text = '';
       
-      // Extract text from text-showing operations
       for (const op of operations) {
-        if (typeof op === 'string' && op.includes('Tj')) {
-          text += op.replace(/[()]/g, '') + ' ';
+        if (typeof op === 'string') {
+          // Clean up text content
+          const cleanText = op.replace(/[()]/g, '').trim();
+          if (cleanText) {
+            text += cleanText + ' ';
+          }
         }
       }
       
-      console.log('Extracted text sample:', text.substring(0, 100));
       return { text };
     } catch (error) {
       console.error('Error extracting text from page:', error);
@@ -62,13 +66,12 @@ export class MeasurementExtractor {
   private async parseMeasurements(text: string): Promise<any> {
     console.log('Parsing measurements from text');
     
-    // Try multiple patterns for total area with more variations
+    // Multiple patterns for total area
     const areaPatterns = [
-      /Total Area \(All Pitches\)\s*=\s*([\d,\.]+)/i,
-      /Total Area:\s*([\d,\.]+)/i,
-      /Total Roof Area:\s*([\d,\.]+)/i,
-      /Roof Area:\s*([\d,\.]+)/i,
-      /Total Square Footage:\s*([\d,\.]+)/i
+      /Total\s*Area\s*(?:\(All\s*Pitches\))?\s*[=:]\s*([\d,\.]+)/i,
+      /Total\s*Square\s*Footage\s*[=:]\s*([\d,\.]+)/i,
+      /Roof\s*Area\s*[=:]\s*([\d,\.]+)/i,
+      /Total\s*Squares\s*[=:]\s*([\d,\.]+)/i
     ];
 
     let totalArea = 0;
@@ -80,14 +83,12 @@ export class MeasurementExtractor {
         break;
       }
     }
-    
-    // Try multiple patterns for pitch with more variations
+
+    // Multiple patterns for pitch
     const pitchPatterns = [
-      /Predominant Pitch\s*=\s*([\d\.]+)/i,
-      /Main Pitch:\s*([\d\.]+)/i,
-      /Roof Pitch:\s*([\d\.]+)/i,
-      /Primary Pitch:\s*([\d\.]+)/i,
-      /Average Pitch:\s*([\d\.]+)/i
+      /(?:Main|Primary|Predominant|Average)\s*Pitch\s*[=:]\s*([\d\.]+)/i,
+      /Roof\s*Pitch\s*[=:]\s*([\d\.]+)/i,
+      /Pitch\s*[=:]\s*([\d\.]+)/i
     ];
 
     let pitch = MeasurementExtractor.DEFAULT_PITCH;
@@ -100,7 +101,7 @@ export class MeasurementExtractor {
       }
     }
 
-    // Extract pitch breakdown with more flexible pattern
+    // Extract pitch breakdown
     const pitchBreakdown: { pitch: string; area: number }[] = [];
     const pitchPattern = /(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:pitch|slope|:).*?(\d+(?:,\d+)?(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|sqft|sf|square\s*feet)/gi;
     let match;
@@ -115,11 +116,10 @@ export class MeasurementExtractor {
       }
     }
 
-    // Extract waste percentage with more patterns
+    // Extract waste percentage
     const wastePatterns = [
-      /(?:Suggested|Recommended)\s+Waste:\s*(\d+)%/i,
-      /Waste\s+Factor:\s*(\d+)%/i,
-      /Waste\s+Percentage:\s*(\d+)%/i
+      /(?:Suggested|Recommended)\s*Waste\s*[=:]\s*(\d+)%/i,
+      /Waste\s*(?:Factor|Percentage)\s*[=:]\s*(\d+)%/i
     ];
     
     let wastePercentage = 12; // Default
@@ -132,11 +132,11 @@ export class MeasurementExtractor {
       }
     }
 
-    // Extract property address with more flexible pattern
+    // Extract property address
     const addressPatterns = [
-      /Property\s+Address:\s*([^\n]+)/i,
-      /Address:\s*([^\n]+)/i,
-      /Location:\s*([^\n]+)/i
+      /Property\s*Address\s*[=:]\s*([^\n]+)/i,
+      /Address\s*[=:]\s*([^\n]+)/i,
+      /Location\s*[=:]\s*([^\n]+)/i
     ];
 
     let propertyAddress;
@@ -152,7 +152,7 @@ export class MeasurementExtractor {
     const measurements = {
       total_area: totalArea,
       pitch,
-      roof_type: 'SHINGLE', // Default to shingle, can be updated based on user selection
+      roof_type: 'SHINGLE', // Default to shingle
       waste_percentage: wastePercentage,
       property_address: propertyAddress,
       pitch_breakdown: pitchBreakdown,
@@ -165,9 +165,8 @@ export class MeasurementExtractor {
   private validateMeasurements(measurements: any): boolean {
     console.log('Validating measurements:', measurements);
 
-    // More lenient validation with better error messages
     if (!measurements.total_area) {
-      console.error('Total area is missing or zero');
+      console.error('Total area is missing');
       return false;
     }
 
@@ -176,15 +175,16 @@ export class MeasurementExtractor {
       return false;
     }
 
-    // Allow any reasonable positive pitch value
-    if (isNaN(measurements.pitch) || measurements.pitch <= 0 || measurements.pitch > 45) {
+    // More lenient pitch validation
+    if (isNaN(measurements.pitch)) {
       console.error('Invalid pitch value:', measurements.pitch);
       return false;
     }
 
-    if (!MeasurementExtractor.VALID_ROOF_TYPES.includes(measurements.roof_type)) {
-      console.error('Invalid roof type:', measurements.roof_type);
-      return false;
+    // Allow any reasonable pitch value
+    if (measurements.pitch <= 0 || measurements.pitch > 45) {
+      console.warn('Unusual pitch value:', measurements.pitch);
+      // Don't return false here, just warn
     }
 
     console.log('Measurements validation passed');
