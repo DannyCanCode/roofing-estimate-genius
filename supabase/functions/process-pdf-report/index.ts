@@ -1,10 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Import specific version of pdf.js for Deno
+const pdfJS = await import('https://cdn.skypack.dev/pdfjs-dist@2.12.313/build/pdf.js');
+const pdfjsLib = pdfJS.default;
+
+// Set up the worker for pdf.js
+const pdfWorker = await import('https://cdn.skypack.dev/pdfjs-dist@2.12.313/build/pdf.worker.js');
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker.default;
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -26,6 +33,7 @@ serve(async (req) => {
 
     console.log('Processing PDF file of size:', arrayBuffer.byteLength);
 
+    // Load the PDF document
     const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
     const pdf = await loadingTask.promise;
 

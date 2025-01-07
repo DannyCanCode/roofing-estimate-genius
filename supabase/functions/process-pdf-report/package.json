@@ -1,7 +1,4 @@
 {
   "name": "process-pdf-report",
-  "version": "1.0.0",
-  "dependencies": {
-    "pdf-parse": "^1.1.1"
-  }
+  "version": "1.0.0"
 }
