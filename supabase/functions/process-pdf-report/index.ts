@@ -34,7 +34,6 @@ serve(async (req) => {
       const measurements = textExtractor.extractMeasurements(text);
       console.log('Parsed measurements:', measurements);
 
-      // Format measurements to match frontend expectations
       const formattedMeasurements = {
         measurements: {
           total_area: measurements.totalArea || 0,

@@ -1,23 +1,7 @@
 import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib';
-
-export interface ExtractedMeasurements {
-  totalArea?: number;
-  totalSquares?: number;
-  pitch?: string;
-  ridgesLength?: number;
-  ridgesCount?: number;
-  hipsLength?: number;
-  hipsCount?: number;
-  valleysLength?: number;
-  valleysCount?: number;
-  rakesLength?: number;
-  rakesCount?: number;
-  eavesLength?: number;
-  eavesCount?: number;
-  flatArea?: number;
-  numberOfStories?: number;
-  suggestedWaste?: number;
-}
+import { cleanText, logTextChunks, extractNumber } from '../utils/text-processing.ts';
+import { totalAreaPatterns, generalAreaPattern, pitchPatterns } from '../utils/measurement-patterns.ts';
+import type { ExtractedMeasurements } from '../types/measurements.ts';
 
 export class TextExtractor {
   async extractText(pdfBytes: Uint8Array): Promise<string> {
@@ -36,7 +20,7 @@ export class TextExtractor {
       }
 
       console.log('Raw extracted text sample (first 1000 chars):', text.substring(0, 1000));
-      const cleanedText = this.cleanText(text);
+      const cleanedText = cleanText(text);
       console.log('Cleaned text sample (first 1000 chars):', cleanedText.substring(0, 1000));
       return cleanedText;
     } catch (error) {
@@ -45,25 +29,13 @@ export class TextExtractor {
     }
   }
 
-  private cleanText(text: string): string {
-    return text
-      .replace(/\r\n/g, '\n')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-
   private async extractPageText(page: any): Promise<string> {
     try {
       const content = await page.getTextContent();
-      let text = '';
-      
-      for (const item of content.items) {
-        if (typeof item.str === 'string') {
-          text += item.str + ' ';
-        }
-      }
-      
-      return text;
+      return content.items
+        .filter((item: any) => typeof item.str === 'string')
+        .map((item: any) => item.str)
+        .join(' ');
     } catch (error) {
       console.error('Error extracting page text:', error);
       return '';
@@ -72,135 +44,45 @@ export class TextExtractor {
 
   extractMeasurements(text: string): ExtractedMeasurements {
     console.log('Starting measurement extraction from text');
-    
-    // Log text in chunks for better debugging
-    const chunks = text.match(/.{1,500}/g) || [];
-    chunks.forEach((chunk, index) => {
-      console.log(`Text chunk ${index + 1}:`, chunk);
-    });
+    logTextChunks(text);
     
     const measurements: ExtractedMeasurements = {};
-
-    // More flexible patterns for total area
-    const totalAreaPatterns = [
-      /Total Area[^=\n]*[:=]\s*([\d,\.]+)/i,
-      /Total Roof Area[^=\n]*[:=]\s*([\d,\.]+)/i,
-      /Roof Area[^=\n]*[:=]\s*([\d,\.]+)/i,
-      /Total Square Feet[^=\n]*[:=]\s*([\d,\.]+)/i,
-      /Total Squares[^=\n]*[:=]\s*([\d,\.]+)/i,
-      /Area[^=\n]*[:=]\s*([\d,\.]+)/i,
-      /(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|square\s*feet)/i,
-      /Total Area \(All Pitches\)[^=\n]*[:=]\s*([\d,\.]+)/i,
-      /Total Area \(All Pitches\)\s*([\d,\.]+)/i,
-      /Total SF[^=\n]*[:=]\s*([\d,\.]+)/i,
-      /Total Square Footage[^=\n]*[:=]\s*([\d,\.]+)/i,
-      /Total Area\s*=?\s*([\d,\.]+)/i,
-      /Total Roof SF[^=\n]*[:=]\s*([\d,\.]+)/i
-    ];
+    let totalAreaFound = false;
 
     // Try each pattern for total area
-    let totalAreaFound = false;
     for (const pattern of totalAreaPatterns) {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        const value = parseFloat(match[1].replace(/,/g, ''));
-        if (!isNaN(value) && value > 0) {
-          measurements.totalArea = value;
-          measurements.totalSquares = value / 100;
-          totalAreaFound = true;
-          console.log('Found total area:', value, 'using pattern:', pattern);
-          break;
-        }
+      const value = extractNumber(text, pattern);
+      if (value !== null && value > 0) {
+        measurements.totalArea = value;
+        measurements.totalSquares = value / 100;
+        totalAreaFound = true;
+        console.log('Found total area:', value, 'using pattern:', pattern);
+        break;
+      }
+    }
+
+    // Try general area pattern as fallback
+    if (!totalAreaFound) {
+      const value = extractNumber(text, generalAreaPattern);
+      if (value !== null && value > 0) {
+        measurements.totalArea = value;
+        measurements.totalSquares = value / 100;
+        totalAreaFound = true;
+        console.log('Found total area using general pattern:', value);
       }
     }
 
     if (!totalAreaFound) {
-      // Look for any number followed by sq ft or square feet
-      const generalAreaPattern = /(\d{2,}(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|square\s*feet|SF)/i;
-      const match = text.match(generalAreaPattern);
-      if (match && match[1]) {
-        const value = parseFloat(match[1].replace(/,/g, ''));
-        if (!isNaN(value) && value > 0) {
-          measurements.totalArea = value;
-          measurements.totalSquares = value / 100;
-          totalAreaFound = true;
-          console.log('Found total area using general pattern:', value);
-        }
-      }
-    }
-
-    if (!totalAreaFound) {
-      console.log('Could not find total area in text');
+      console.error('Could not find total area in text');
       throw new Error('Could not extract total area from PDF');
     }
 
-    // Extract pitch with more flexible patterns
-    const pitchPatterns = [
-      /Predominant Pitch[^=\n]*[:=]\s*(\d+)\/12/i,
-      /Primary Pitch[^=\n]*[:=]\s*(\d+)\/12/i,
-      /Pitch[^=\n]*[:=]\s*(\d+)\/12/i,
-      /(\d+)\/12\s*pitch/i
-    ];
-
+    // Extract pitch
     for (const pattern of pitchPatterns) {
       const match = text.match(pattern);
       if (match && match[1]) {
         measurements.pitch = `${match[1]}/12`;
         console.log('Found pitch:', measurements.pitch);
-        break;
-      }
-    }
-
-    // Extract measurements with counts using more flexible patterns
-    const measurementPatterns = {
-      ridges: /Ridge.*?Length[^=\n]*[:=]\s*([\d,\.]+).*?Count[^=\n]*[:=]\s*(\d+)/is,
-      hips: /Hip.*?Length[^=\n]*[:=]\s*([\d,\.]+).*?Count[^=\n]*[:=]\s*(\d+)/is,
-      valleys: /Valley.*?Length[^=\n]*[:=]\s*([\d,\.]+).*?Count[^=\n]*[:=]\s*(\d+)/is,
-      rakes: /Rake.*?Length[^=\n]*[:=]\s*([\d,\.]+).*?Count[^=\n]*[:=]\s*(\d+)/is,
-      eaves: /Eave.*?Length[^=\n]*[:=]\s*([\d,\.]+).*?Count[^=\n]*[:=]\s*(\d+)/is
-    };
-
-    for (const [key, pattern] of Object.entries(measurementPatterns)) {
-      const match = text.match(pattern);
-      if (match && match[1] && match[2]) {
-        const length = parseFloat(match[1].replace(/,/g, ''));
-        const count = parseInt(match[2]);
-        if (!isNaN(length) && !isNaN(count)) {
-          measurements[`${key}Length`] = length;
-          measurements[`${key}Count`] = count;
-          console.log(`Found ${key}:`, { length, count });
-        }
-      }
-    }
-
-    // Extract number of stories
-    const storiesPatterns = [
-      /Number of Stories[^=\n]*[:=]\s*(\d+)/i,
-      /Stories[^=\n]*[:=]\s*(\d+)/i,
-      /(\d+)\s*stories?/i
-    ];
-
-    for (const pattern of storiesPatterns) {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        measurements.numberOfStories = parseInt(match[1]);
-        console.log('Found number of stories:', measurements.numberOfStories);
-        break;
-      }
-    }
-
-    // Extract suggested waste percentage
-    const wastePatterns = [
-      /Suggested Waste[^=\n]*[:=]\s*(\d+)/i,
-      /Waste Factor[^=\n]*[:=]\s*(\d+)/i,
-      /Waste[^=\n]*[:=]\s*(\d+)/i
-    ];
-
-    for (const pattern of wastePatterns) {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        measurements.suggestedWaste = parseInt(match[1]);
-        console.log('Found suggested waste:', measurements.suggestedWaste);
         break;
       }
     }
