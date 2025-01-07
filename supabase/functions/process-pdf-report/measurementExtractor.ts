@@ -16,6 +16,15 @@ export function extractMeasurements(text: string): ExtractionResult {
     return null;
   };
 
+  // Clean up text content
+  text = text
+    .replace(/\r\n/g, '\n')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  console.log('Processing text content, length:', text.length);
+  console.log('Sample text:', text.substring(0, 500));
+
   for (const [key, patternList] of Object.entries(measurementPatterns)) {
     debugInfo.text_samples[key] = text.substring(0, 1000);
     const match = tryPatterns(patternList, text);

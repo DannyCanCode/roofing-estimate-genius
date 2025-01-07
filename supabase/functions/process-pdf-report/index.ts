@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { TextExtractor } from './extractors/text-extractor.ts';
+import { extractMeasurements } from "./measurementExtractor.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,24 +32,21 @@ serve(async (req) => {
     console.log('Received file:', file.name, 'Size:', file.size);
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-
-    const textExtractor = new TextExtractor();
-    console.log('Starting text extraction');
     
-    const text = await textExtractor.extractText(uint8Array);
-    console.log('Text extracted successfully, length:', text.length);
-    console.log('Extracted text sample:', text.substring(0, 500));
-    
-    const measurements = await textExtractor.extractMeasurements(text);
-    console.log('Parsed measurements:', measurements);
+    console.log('Starting measurement extraction');
+    const { measurements, debugInfo } = extractMeasurements(new TextDecoder().decode(uint8Array));
+    console.log('Extracted measurements:', measurements);
 
-    if (!measurements.totalArea || measurements.totalArea <= 0) {
+    if (!measurements.total_area || measurements.total_area <= 0) {
       return new Response(
         JSON.stringify({
           error: 'Could not find total area in PDF',
           measurements,
           requiresManualReview: true,
-          debug: { extractedText: text.substring(0, 1000) }
+          debug: { 
+            extractedText: debugInfo.text_samples.total_area || '',
+            patterns: debugInfo.matched_patterns
+          }
         }),
         { 
           status: 422,
