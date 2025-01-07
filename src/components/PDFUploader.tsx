@@ -31,7 +31,7 @@ export function PDFUploader() {
       const items = calculateEstimateItems(data.measurements);
       const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
 
-      // Create estimate in database with all required fields
+      // Create estimate in database
       const estimate = await createEstimate({
         customer_name: "Customer",
         amount: totalAmount,
@@ -42,7 +42,7 @@ export function PDFUploader() {
         date: new Date().toISOString()
       });
 
-      // Create estimate items in database
+      // Create estimate items
       await createEstimateItems(items.map(item => ({
         ...item,
         estimate_id: estimate.id
@@ -72,8 +72,6 @@ export function PDFUploader() {
   return (
     <div className="space-y-6">
       <EstimateForm
-        profitMargin={profitMargin}
-        onProfitMarginChange={setProfitMargin}
         onFileSelect={handleUpload}
         isLoading={isLoading}
       />
