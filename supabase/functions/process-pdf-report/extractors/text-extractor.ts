@@ -72,8 +72,9 @@ export class TextExtractor {
       }
     }
 
+    // Log the entire text if no area was found
     if (!totalAreaFound) {
-      console.error('Could not find total area in text');
+      console.error('Could not find total area. Full text content:', text);
       throw new Error('Could not extract total area from PDF');
     }
 

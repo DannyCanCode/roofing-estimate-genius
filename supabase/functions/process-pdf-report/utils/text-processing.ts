@@ -15,8 +15,12 @@ export const logTextChunks = (text: string, chunkSize: number = 500) => {
 export const extractNumber = (text: string, pattern: RegExp): number | null => {
   const match = text.match(pattern);
   if (match && match[1]) {
-    const value = parseFloat(match[1].replace(/,/g, ''));
-    return !isNaN(value) ? value : null;
+    const cleanedValue = match[1].replace(/,/g, '').trim();
+    const value = parseFloat(cleanedValue);
+    if (!isNaN(value) && value > 0) {
+      console.log(`Found number ${value} using pattern ${pattern}`);
+      return value;
+    }
   }
   return null;
 };
