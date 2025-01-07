@@ -32,29 +32,46 @@ serve(async (req) => {
 
     console.log('Received file:', file.name, 'Size:', file.size);
     const arrayBuffer = await file.arrayBuffer();
-    const text = new TextDecoder().decode(arrayBuffer);
     
-    console.log('Starting measurement extraction');
-    const { measurements, debugInfo } = extractMeasurements(text);
-    console.log('Standard extraction result:', measurements);
-
-    // If standard extraction fails, try OpenAI
-    if (!measurements.total_area || measurements.total_area <= 0) {
-      console.log('Standard extraction failed, trying OpenAI');
-      try {
-        const openAiMeasurements = await extractWithOpenAI(text);
-        console.log('OpenAI extraction result:', openAiMeasurements);
-        
-        if (openAiMeasurements.total_area && openAiMeasurements.total_area > 0) {
-          return new Response(
-            JSON.stringify({ measurements: openAiMeasurements }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-      } catch (openAiError) {
-        console.error('OpenAI extraction failed:', openAiError);
+    // Convert ArrayBuffer to text, handling potential binary data
+    const decoder = new TextDecoder('utf-8');
+    let text = decoder.decode(arrayBuffer);
+    
+    // Clean up binary artifacts and PDF syntax
+    text = text.replace(/%PDF-.*?%%EOF/gs, '')
+              .replace(/<</g, '')
+              .replace(/>>/g, '')
+              .replace(/endobj/g, '')
+              .replace(/endstream/g, '')
+              .replace(/\r\n/g, '\n')
+              .replace(/\x00/g, '') // Remove null bytes
+              .replace(/[^\x20-\x7E\n]/g, ' ') // Keep only printable ASCII
+              .replace(/\s+/g, ' ')
+              .trim();
+    
+    console.log('Cleaned text length:', text.length);
+    console.log('Sample of cleaned text:', text.substring(0, 200));
+    
+    try {
+      console.log('Attempting OpenAI extraction first');
+      const openAiMeasurements = await extractWithOpenAI(text);
+      console.log('OpenAI extraction result:', openAiMeasurements);
+      
+      if (openAiMeasurements.total_area && openAiMeasurements.total_area > 0) {
+        return new Response(
+          JSON.stringify({ measurements: openAiMeasurements }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
+    } catch (openAiError) {
+      console.error('OpenAI extraction failed:', openAiError);
+    }
 
+    // Fallback to pattern matching
+    console.log('Falling back to pattern matching');
+    const { measurements, debugInfo } = extractMeasurements(text);
+    
+    if (!measurements.total_area || measurements.total_area <= 0) {
       return new Response(
         JSON.stringify({
           error: 'Could not find total area in PDF',
@@ -74,9 +91,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ measurements }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {

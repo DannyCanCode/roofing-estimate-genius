@@ -1,26 +1,13 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { ProcessedPdfData } from "./types.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const supabaseUrl = Deno.env.get('SUPABASE_URL');
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-export async function extractWithOpenAI(text: string) {
+export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData['measurements']> {
   if (!openAIApiKey) {
     throw new Error('OpenAI API key not configured');
   }
 
   console.log('Starting OpenAI extraction with text length:', text.length);
-
-  // Clean up the text by removing PDF artifacts
-  const cleanText = text
-    .replace(/%PDF-.*?endobj/gs, '')
-    .replace(/<<\/.*?>>/g, '')
-    .replace(/endstream/g, '')
-    .replace(/\r\n/g, '\n')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  console.log('Cleaned text length:', cleanText.length);
 
   const prompt = `Extract roofing measurements from this text. Return ONLY a JSON object with these fields:
   - total_area (number): The total roof area in square feet
@@ -34,9 +21,9 @@ export async function extractWithOpenAI(text: string) {
   - "Waste Factor = X%"
 
   Here's the text:
-  ${cleanText.substring(0, 4000)}
+  ${text.substring(0, 4000)}
 
-  Return ONLY the JSON object, no markdown formatting, no code blocks, no additional text. If you can't find a value, use null.`;
+  Return ONLY a raw JSON object with these three fields. No explanations, no markdown.`;
 
   try {
     console.log('Sending request to OpenAI');
@@ -51,11 +38,11 @@ export async function extractWithOpenAI(text: string) {
         messages: [
           { 
             role: 'system', 
-            content: 'You are a helpful assistant that extracts roofing measurements from PDF text. Return only a raw JSON object without any formatting or explanation.' 
+            content: 'You are a measurement extractor. Return only raw JSON with total_area (number), predominant_pitch (string), and suggested_waste_percentage (number). No explanations or formatting.' 
           },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.1, // Very low temperature for consistent output
+        temperature: 0,
       }),
     });
 
@@ -72,25 +59,14 @@ export async function extractWithOpenAI(text: string) {
       throw new Error('Invalid response from OpenAI');
     }
 
-    const extractedText = data.choices[0].message.content;
-    console.log('Raw extracted text:', extractedText);
+    const content = data.choices[0].message.content.trim();
+    console.log('Raw content:', content);
 
     try {
-      // Clean the response of any potential formatting
-      const cleanJson = extractedText
-        .replace(/```json\s*/g, '')
-        .replace(/```\s*/g, '')
-        .replace(/^\s*{\s*/, '{')
-        .replace(/\s*}\s*$/, '}')
-        .trim();
+      const measurements = JSON.parse(content);
       
-      console.log('Cleaned JSON:', cleanJson);
-      
-      const measurements = JSON.parse(cleanJson);
-      
-      // Validate the parsed measurements
+      // Validate the measurements
       if (typeof measurements.total_area !== 'number' && measurements.total_area !== null) {
-        console.error('Invalid total_area format:', measurements.total_area);
         throw new Error('Invalid total_area format');
       }
 
@@ -100,9 +76,9 @@ export async function extractWithOpenAI(text: string) {
         suggested_waste_percentage: measurements.suggested_waste_percentage || 15
       };
     } catch (error) {
-      console.error('Error parsing OpenAI response:', error);
-      console.error('Response content:', extractedText);
-      throw new Error(`Failed to parse OpenAI response: ${error.message}`);
+      console.error('Error parsing measurements:', error);
+      console.error('Raw content was:', content);
+      throw new Error(`Failed to parse measurements: ${error.message}`);
     }
   } catch (error) {
     console.error('OpenAI extraction error:', error);
