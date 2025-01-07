@@ -18,7 +18,9 @@ export const totalAreaPatterns = [
   /Total Roof Area:\s*([\d,\.]+)/i,
   /Total Square Footage:\s*([\d,\.]+)/i,
   /Total SF:\s*([\d,\.]+)/i,
-  /Area:\s*([\d,\.]+)/i
+  /Area:\s*([\d,\.]+)/i,
+  /Total:\s*([\d,\.]+)\s*(?:sq\.?\s*ft\.?|square\s*feet|SF)/i,
+  /Grand Total:\s*([\d,\.]+)\s*(?:sq\.?\s*ft\.?|square\s*feet|SF)/i
 ];
 
 export const generalAreaPattern = /(\d{2,}(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|square\s*feet|SF)/i;
@@ -30,5 +32,7 @@ export const pitchPatterns = [
   /(\d+)\/12\s*pitch/i,
   /Main Pitch[^=\n]*[:=]\s*(\d+)\/12/i,
   /Pitch:\s*(\d+)\/12/i,
-  /(\d+)\/12/i
+  /(\d+)\/12/i,
+  /Slope[^=\n]*[:=]\s*(\d+)\/12/i,
+  /Roof Slope[^=\n]*[:=]\s*(\d+)\/12/i
 ];

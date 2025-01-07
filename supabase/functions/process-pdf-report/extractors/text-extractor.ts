@@ -33,9 +33,15 @@ export class TextExtractor {
     try {
       const content = await page.getTextContent();
       const text = content.items
-        .filter((item: any) => typeof item.str === 'string')
-        .map((item: any) => item.str)
-        .join(' ');
+        .map((item: any) => typeof item.str === 'string' ? item.str : '')
+        .join(' ')
+        .trim();
+      
+      if (!text) {
+        console.warn('No text content found on page');
+        return '';
+      }
+      
       console.log('Extracted page text sample:', text.substring(0, 200));
       return text;
     } catch (error) {
@@ -79,7 +85,7 @@ export class TextExtractor {
     // Log the entire text if no area was found
     if (!totalAreaFound) {
       console.error('Could not find total area. Full text content:', text);
-      throw new Error('Could not extract total area from PDF');
+      throw new Error('Could not extract total area from PDF. Please ensure the PDF contains valid measurements.');
     }
 
     // Extract pitch
