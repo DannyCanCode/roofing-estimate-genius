@@ -1,11 +1,9 @@
-interface Measurements {
-  total_area: number;
-  predominant_pitch: string;
-  suggested_waste_percentage: number;
-}
+import { RoofMeasurements } from '../types/measurements.ts';
 
 export class MeasurementsValidator {
-  validate(measurements: Measurements): boolean {
+  validate(measurements: RoofMeasurements): boolean {
+    console.log('Validating measurements:', measurements);
+
     if (!measurements.total_area || measurements.total_area <= 0) {
       console.error('Invalid total area:', measurements.total_area);
       return false;
@@ -21,6 +19,7 @@ export class MeasurementsValidator {
       return false;
     }
 
+    console.log('Measurements validation passed');
     return true;
   }
 }

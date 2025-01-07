@@ -3,13 +3,6 @@ import { TextExtractor } from './extractors/text-extractor.ts';
 import { EagleViewParser } from './extractors/eagleview-parser.ts';
 import { MeasurementsValidator } from './validators/measurements-validator.ts';
 
-// Configure PDF.js for Node-like environment
-globalThis.window = globalThis;
-globalThis.document = {
-  currentScript: { src: '' },
-  createElement: () => ({ style: {} }),
-} as any;
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -22,32 +15,32 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Processing PDF request');
     const formData = await req.formData();
     const file = formData.get('file') as File;
-    console.log('Received file:', file?.name);
-
+    
     if (!file) {
       throw new Error('No file provided');
     }
 
+    console.log('Received file:', file.name);
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-
-    console.log('Processing PDF file of size:', arrayBuffer.byteLength);
 
     const textExtractor = new TextExtractor();
     const parser = new EagleViewParser();
     const validator = new MeasurementsValidator();
 
+    console.log('Starting text extraction');
     const text = await textExtractor.extractText(uint8Array);
+    console.log('Text extracted, parsing measurements');
     const measurements = parser.parseMeasurements(text);
 
     if (!validator.validate(measurements)) {
       throw new Error('Invalid measurements extracted from PDF');
     }
 
-    console.log('Processed measurements:', measurements);
-
+    console.log('Successfully processed PDF');
     return new Response(
       JSON.stringify({ measurements }),
       { 
