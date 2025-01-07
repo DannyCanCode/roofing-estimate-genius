@@ -7,7 +7,7 @@ interface EstimateItem {
   description: string
   quantity: number
   unit: string
-  unitPrice: number
+  unit_price: number
   total: number
 }
 
@@ -44,7 +44,7 @@ export function EstimatePreview({ items, totalPrice, onExportPdf }: EstimatePrev
                 <TableCell>{item.description}</TableCell>
                 <TableCell className="text-right">{item.quantity}</TableCell>
                 <TableCell className="text-right">{item.unit}</TableCell>
-                <TableCell className="text-right">${item.unitPrice.toFixed(2)}</TableCell>
+                <TableCell className="text-right">${item.unit_price.toFixed(2)}</TableCell>
                 <TableCell className="text-right">${item.total.toFixed(2)}</TableCell>
               </TableRow>
             ))}
