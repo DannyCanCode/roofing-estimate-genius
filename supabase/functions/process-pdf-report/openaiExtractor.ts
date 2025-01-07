@@ -10,20 +10,50 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
   // Log a sample of the text we're processing
   console.log('Processing PDF text sample:', text.substring(0, 500));
   
-  // First try direct regex extraction
-  const totalAreaMatch = text.match(/Total Area[^=\n]*[:=]\s*([\d,\.]+)/i);
-  console.log('Direct regex match for total area:', totalAreaMatch?.[1] || 'not found');
+  // Check if PDF appears to be text-based
+  const hasMinimalText = text.length > 1000; // Basic heuristic
+  const containsCommonPdfText = text.includes('endobj') || text.includes('stream');
+  
+  if (!hasMinimalText || !containsCommonPdfText) {
+    console.log('PDF appears to be image-based or scanned:', {
+      textLength: text.length,
+      hasCommonPdfMarkers: containsCommonPdfText
+    });
+    throw new Error('This appears to be a scanned PDF. Please ensure you are uploading a text-based PDF from EagleView.');
+  }
 
-  if (totalAreaMatch && totalAreaMatch[1]) {
-    const totalArea = parseFloat(totalAreaMatch[1].replace(/,/g, ''));
-    if (totalArea > 0) {
-      console.log('Found total area directly:', totalArea);
-      // Continue with other direct extractions...
+  // Search for area measurements with various patterns
+  const areaPatterns = [
+    /Total Area[^=\n]*[:=]\s*([\d,\.]+)/i,
+    /Total Roof Area[^=\n]*[:=]\s*([\d,\.]+)/i,
+    /Area \(All Pitches\)[^=\n]*[:=]\s*([\d,\.]+)/i,
+    /Total Square Footage[^=\n]*[:=]\s*([\d,\.]+)/i,
+    /(\d{2,}(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|square\s*feet)/i
+  ];
+
+  let directMatch = null;
+  for (const pattern of areaPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      console.log('Found direct area match:', {
+        pattern: pattern.toString(),
+        match: match[1],
+        context: match[0]
+      });
+      directMatch = parseFloat(match[1].replace(/,/g, ''));
+      break;
     }
   }
 
-  // If direct extraction failed, try with OpenAI
-  const prompt = `Extract ONLY the exact measurements found in this EagleView roof report. Return ONLY a JSON object with numeric values. Use null for any value not explicitly found in the text. Do not invent or estimate values.
+  // If direct regex fails, try with OpenAI
+  const prompt = `Extract ONLY the exact measurements found in this EagleView roof report. Look for any of these variations:
+  - "Total Area" or "Total Roof Area"
+  - Area followed by "sq ft", "square feet", or "SF"
+  - Area listed under "All Pitches"
+  - Any numeric value explicitly labeled as the total roof area
+
+  Return ONLY a JSON object with numeric values. Use null for any value not explicitly found in the text.
+  Do NOT estimate or provide default values.
 
   Required format:
   {
@@ -68,13 +98,20 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     console.log('OpenAI raw response:', data);
 
     let content = data.choices[0].message.content.trim();
+    // Remove markdown code fences if present
     content = content.replace(/^```json\n|\n```$/g, '');
     
     const measurements = JSON.parse(content);
     console.log('Parsed measurements:', measurements);
 
+    // If we found a direct match earlier, use it
+    if (directMatch) {
+      measurements.total_area = directMatch;
+    }
+
     // Validate total area - must be present and valid
     if (!measurements.total_area || measurements.total_area <= 0) {
+      console.log('No valid total_area found in measurements:', measurements);
       const error = new Error('Could not find valid total_area in the PDF');
       error.name = 'MeasurementNotFoundError';
       throw error;
