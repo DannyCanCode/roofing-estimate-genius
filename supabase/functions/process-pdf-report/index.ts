@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { extractMeasurements } from "./measurementExtractor.ts";
+import { extractWithOpenAI } from "./openaiExtractor.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,12 +33,29 @@ serve(async (req) => {
     console.log('Received file:', file.name, 'Size:', file.size);
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
+    const text = new TextDecoder().decode(uint8Array);
     
     console.log('Starting measurement extraction');
-    const { measurements, debugInfo } = extractMeasurements(new TextDecoder().decode(uint8Array));
+    const { measurements, debugInfo } = extractMeasurements(text);
     console.log('Extracted measurements:', measurements);
 
+    // If standard extraction fails, try OpenAI
     if (!measurements.total_area || measurements.total_area <= 0) {
+      console.log('Standard extraction failed, trying OpenAI');
+      try {
+        const openAiMeasurements = await extractWithOpenAI(text);
+        console.log('OpenAI extraction result:', openAiMeasurements);
+        
+        if (openAiMeasurements.total_area && openAiMeasurements.total_area > 0) {
+          return new Response(
+            JSON.stringify({ measurements: openAiMeasurements }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } catch (openAiError) {
+        console.error('OpenAI extraction failed:', openAiError);
+      }
+
       return new Response(
         JSON.stringify({
           error: 'Could not find total area in PDF',
