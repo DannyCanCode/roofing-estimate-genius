@@ -3,6 +3,12 @@ export interface Measurements {
   total_area?: number;
   predominant_pitch?: string;
   suggested_waste_percentage?: number;
+  number_of_stories?: number;
+  ridges?: { length: number; count: number };
+  hips?: { length: number; count: number };
+  valleys?: { length: number; count: number };
+  rakes?: { length: number; count: number };
+  eaves?: { length: number; count: number };
 }
 
 export interface DebugInfo {
