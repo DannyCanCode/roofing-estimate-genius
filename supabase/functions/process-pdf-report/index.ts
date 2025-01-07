@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -26,24 +25,48 @@ serve(async (req) => {
     const uint8Array = new Uint8Array(arrayBuffer);
 
     const textExtractor = new TextExtractor();
-    
-    console.log('Starting text extraction');
     const text = await textExtractor.extractText(uint8Array);
     console.log('Text extracted, length:', text.length);
     
-    console.log('Parsing measurements');
     const measurements = textExtractor.extractMeasurements(text);
     console.log('Parsed measurements:', measurements);
 
-    if (!measurements.totalArea) {
+    // Format measurements to match frontend expectations
+    const formattedMeasurements = {
+      measurements: {
+        total_area: measurements.totalArea || 0,
+        predominant_pitch: measurements.pitch || "4/12",
+        suggested_waste_percentage: measurements.suggestedWaste || 15,
+        // Include additional measurements
+        ridges: {
+          length: measurements.ridgesLength || 0,
+          count: measurements.ridgesCount || 0
+        },
+        hips: {
+          length: measurements.hipsLength || 0,
+          count: measurements.hipsCount || 0
+        },
+        valleys: {
+          length: measurements.valleysLength || 0,
+          count: measurements.valleysCount || 0
+        },
+        rakes: {
+          length: measurements.rakesLength || 0,
+          count: measurements.rakesCount || 0
+        },
+        eaves: {
+          length: measurements.eavesLength || 0,
+          count: measurements.eavesCount || 0
+        }
+      }
+    };
+
+    if (!formattedMeasurements.measurements.total_area) {
       throw new Error('Could not extract total area from PDF');
     }
 
     return new Response(
-      JSON.stringify({ 
-        measurements,
-        debug: { text: text.substring(0, 500) + '...' } 
-      }),
+      JSON.stringify(formattedMeasurements),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }

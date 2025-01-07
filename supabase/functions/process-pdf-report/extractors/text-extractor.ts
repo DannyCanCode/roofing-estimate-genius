@@ -32,7 +32,7 @@ export class TextExtractor {
       const pdfDoc = await PDFDocument.load(pdfBytes);
       console.log('PDF loaded successfully');
       
-      // For now return mock text to test the parsing
+      // For testing, return mock text that matches the expected format
       return `
         Total Area = 2500 sq ft
         Total Squares = 25
