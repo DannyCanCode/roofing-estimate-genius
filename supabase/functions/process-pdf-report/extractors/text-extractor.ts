@@ -16,6 +16,8 @@ export class TextExtractor {
         console.log(`Processing page ${i + 1}`);
         const page = pages[i];
         const pageText = await this.extractPageText(page);
+        console.log(`Page ${i + 1} text length:`, pageText.length);
+        console.log(`Page ${i + 1} sample:`, pageText.substring(0, 200));
         text += pageText + '\n';
       }
 
@@ -32,11 +34,15 @@ export class TextExtractor {
 
   private async extractPageText(page: any): Promise<string> {
     try {
-      const content = await page.getTextContent();
-      return content.items
+      // First try to get text content directly
+      const textContent = await page.getTextContent();
+      const text = textContent.items
         .map((item: any) => typeof item.str === 'string' ? item.str : '')
         .join(' ')
         .trim();
+
+      console.log('Extracted text length:', text.length);
+      return text;
     } catch (error) {
       console.error('Error extracting page text:', error);
       return '';
@@ -45,6 +51,8 @@ export class TextExtractor {
 
   async extractMeasurements(text: string): Promise<ExtractedMeasurements> {
     console.log('Starting measurement extraction from text');
+    console.log('Text length:', text.length);
+    console.log('Text sample:', text.substring(0, 500));
     
     const measurements: ExtractedMeasurements = {
       totalArea: 0,
@@ -71,7 +79,7 @@ export class TextExtractor {
     }
 
     // If regex patterns fail, try OpenAI
-    if (!totalAreaFound) {
+    if (!totalAreaFound && text.length > 0) {
       console.log('Attempting to extract measurements using OpenAI');
       try {
         const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -100,9 +108,17 @@ export class TextExtractor {
           }),
         });
 
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('OpenAI API error:', errorData);
+          throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+        }
+
         const data = await response.json();
+        console.log('OpenAI response:', data);
+
         const aiResponse = data.choices[0].message.content;
-        console.log('OpenAI response:', aiResponse);
+        console.log('AI extracted text:', aiResponse);
 
         // Try to extract a number from the AI response
         const numberMatch = aiResponse.match(/\d[\d,]*/);
