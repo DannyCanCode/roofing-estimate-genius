@@ -1,53 +1,63 @@
-import { useState } from 'react';
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import { RoofingCategorySelector, RoofingCategory } from "@/components/RoofingCategorySelector";
+import { EstimateUploadSection } from "./EstimateUploadSection";
+import { EstimatePreview } from "@/components/EstimatePreview";
+import { PdfExtractionDetails } from "@/components/PdfExtractionDetails";
+import { EstimateItem, RoofMeasurements } from "@/types/estimate";
 
 interface EstimateFormProps {
-  profitMargin: number;
-  onProfitMarginChange: (value: number) => void;
-  onFileSelect: (file: File) => void;
-  isLoading: boolean;
+  selectedCategory: RoofingCategory | null;
+  onSelectCategory: (category: RoofingCategory) => void;
+  measurements: RoofMeasurements | null;
+  estimateItems: EstimateItem[];
+  totalPrice: number;
+  rawPdfData: Record<string, any> | null;
+  onFileAccepted: (file: File) => void;
+  isProcessing: boolean;
+  onExportPdf: () => void;
 }
 
 export function EstimateForm({
-  profitMargin,
-  onProfitMarginChange,
-  onFileSelect,
-  isLoading
+  selectedCategory,
+  onSelectCategory,
+  measurements,
+  estimateItems,
+  totalPrice,
+  rawPdfData,
+  onFileAccepted,
+  isProcessing,
+  onExportPdf,
 }: EstimateFormProps) {
   return (
-    <Card className="p-6">
-      <div className="space-y-6">
-        <div>
-          <Label htmlFor="profitMargin">Profit Margin (%)</Label>
-          <Input
-            id="profitMargin"
-            type="number"
-            value={profitMargin}
-            onChange={(e) => onProfitMarginChange(Number(e.target.value))}
-            className="w-32"
-            min="0"
-            max="100"
-            disabled={isLoading}
-          />
+    <div className="lg:col-span-2 space-y-6">
+      <RoofingCategorySelector
+        selectedCategory={selectedCategory}
+        onSelectCategory={onSelectCategory}
+      />
+      
+      {!selectedCategory ? (
+        <div className="text-center p-8 bg-muted rounded-lg">
+          <p className="text-muted-foreground">
+            Please select a roofing type to continue
+          </p>
         </div>
-
-        <div>
-          <Label htmlFor="pdfUpload">Upload EagleView PDF</Label>
-          <Input
-            id="pdfUpload"
-            type="file"
-            accept=".pdf"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onFileSelect(file);
-            }}
-            disabled={isLoading}
+      ) : !measurements ? (
+        <EstimateUploadSection
+          onFileAccepted={onFileAccepted}
+          isProcessing={isProcessing}
+        />
+      ) : (
+        <>
+          <EstimatePreview
+            items={estimateItems}
+            totalPrice={totalPrice}
+            onExportPdf={onExportPdf}
           />
-        </div>
-      </div>
-    </Card>
+          {rawPdfData && (
+            <PdfExtractionDetails data={rawPdfData} />
+          )}
+        </>
+      )}
+    </div>
   );
 }

@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import { EstimatePreview } from "@/components/EstimatePreview";
-import { RoofingCategorySelector, RoofingCategory } from "@/components/RoofingCategorySelector";
-import { ProfitMarginSlider } from "@/components/ProfitMarginSlider";
+import { RoofingCategory } from "@/components/RoofingCategorySelector";
 import { RoofMeasurements, EstimateItem } from "@/types/estimate";
-import { EstimateUploadSection } from "./estimate/EstimateUploadSection";
 import { usePdfProcessing } from "./estimate/usePdfProcessing";
 import { useEstimateGeneration } from "./estimate/useEstimateGeneration";
-import { PdfExtractionDetails } from "./PdfExtractionDetails";
+import { EstimateForm } from "./estimate/EstimateForm";
+import { EstimateSidebar } from "./estimate/EstimateSidebar";
 
 const EstimateGenerator = () => {
   const { toast } = useToast();
@@ -50,52 +48,32 @@ const EstimateGenerator = () => {
     }
   }, [measurements, selectedCategory, profitMargin]);
 
+  const handleExportPdf = () => {
+    toast({
+      title: "Export Started",
+      description: "Your estimate PDF is being generated...",
+    });
+  };
+
   return (
     <div className="grid gap-8 lg:grid-cols-3">
-      <div className="lg:col-span-2 space-y-6">
-        <RoofingCategorySelector
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-        />
-        
-        {!selectedCategory ? (
-          <div className="text-center p-8 bg-muted rounded-lg">
-            <p className="text-muted-foreground">
-              Please select a roofing type to continue
-            </p>
-          </div>
-        ) : !measurements ? (
-          <EstimateUploadSection
-            onFileAccepted={processPdfMutation.mutate}
-            isProcessing={processPdfMutation.isPending}
-          />
-        ) : (
-          <>
-            <EstimatePreview
-              items={estimateItems}
-              totalPrice={totalPrice}
-              onExportPdf={() => {
-                toast({
-                  title: "Export Started",
-                  description: "Your estimate PDF is being generated...",
-                });
-              }}
-            />
-            {rawPdfData && (
-              <PdfExtractionDetails data={rawPdfData} />
-            )}
-          </>
-        )}
-      </div>
-
-      <div className="space-y-6">
-        {measurements && selectedCategory && (
-          <ProfitMarginSlider
-            value={profitMargin}
-            onChange={setProfitMargin}
-          />
-        )}
-      </div>
+      <EstimateForm
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+        measurements={measurements}
+        estimateItems={estimateItems}
+        totalPrice={totalPrice}
+        rawPdfData={rawPdfData}
+        onFileAccepted={processPdfMutation.mutate}
+        isProcessing={processPdfMutation.isPending}
+        onExportPdf={handleExportPdf}
+      />
+      <EstimateSidebar
+        measurements={measurements}
+        selectedCategory={selectedCategory}
+        profitMargin={profitMargin}
+        onProfitMarginChange={setProfitMargin}
+      />
     </div>
   );
 };
