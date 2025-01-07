@@ -20,7 +20,7 @@ serve(async (req) => {
       throw new Error('No file provided');
     }
 
-    console.log('Received file:', file.name);
+    console.log('Received file:', file.name, 'Size:', file.size);
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
 
@@ -29,7 +29,8 @@ serve(async (req) => {
     
     try {
       const text = await textExtractor.extractText(uint8Array);
-      console.log('Text extracted successfully');
+      console.log('Text extracted successfully, length:', text.length);
+      console.log('Sample of extracted text:', text.substring(0, 500));
       
       const measurements = textExtractor.extractMeasurements(text);
       console.log('Parsed measurements:', measurements);
@@ -72,11 +73,13 @@ serve(async (req) => {
 
     } catch (error) {
       console.error('Error extracting text or measurements:', error);
+      console.error('Stack trace:', error.stack);
       throw error;
     }
 
   } catch (error) {
     console.error('Error processing PDF:', error);
+    console.error('Stack trace:', error.stack);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error processing PDF',

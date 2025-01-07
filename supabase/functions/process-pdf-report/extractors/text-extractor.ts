@@ -32,10 +32,12 @@ export class TextExtractor {
   private async extractPageText(page: any): Promise<string> {
     try {
       const content = await page.getTextContent();
-      return content.items
+      const text = content.items
         .filter((item: any) => typeof item.str === 'string')
         .map((item: any) => item.str)
         .join(' ');
+      console.log('Extracted page text sample:', text.substring(0, 200));
+      return text;
     } catch (error) {
       console.error('Error extracting page text:', error);
       return '';
@@ -51,6 +53,7 @@ export class TextExtractor {
 
     // Try each pattern for total area
     for (const pattern of totalAreaPatterns) {
+      console.log('Trying pattern:', pattern);
       const value = extractNumber(text, pattern);
       if (value !== null && value > 0) {
         measurements.totalArea = value;
@@ -63,6 +66,7 @@ export class TextExtractor {
 
     // Try general area pattern as fallback
     if (!totalAreaFound) {
+      console.log('Trying general area pattern:', generalAreaPattern);
       const value = extractNumber(text, generalAreaPattern);
       if (value !== null && value > 0) {
         measurements.totalArea = value;
