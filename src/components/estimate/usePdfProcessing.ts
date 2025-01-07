@@ -19,22 +19,21 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
 
         if (!data.measurements?.total_area) {
           console.error('Invalid or missing total area in response:', data);
-          throw new Error(data.error || 'Could not extract roof area from PDF. Please make sure you are uploading a valid EagleView report.');
+          throw new Error(data.error || 'Could not extract roof area from PDF');
         }
 
         // Get the pitch from either pitchBreakdown or the direct pitch field
         const defaultPitch = "4/12";
-        const pitch = data.measurements.predominant_pitch ? `${data.measurements.predominant_pitch}/12` : defaultPitch;
+        const pitch = data.measurements.predominant_pitch || defaultPitch;
 
         const processedData: ProcessedPdfData = {
-          totalArea: data.measurements.total_area,
-          pitchBreakdown: [{
-            pitch: pitch,
-            area: data.measurements.total_area
-          }],
-          suggestedWaste: data.measurements.suggested_waste_percentage || 15,
-          // Add all the raw data fields
-          ...data.measurements
+          measurements: {
+            total_area: data.measurements.total_area,
+            predominant_pitch: pitch,
+            suggested_waste_percentage: data.measurements.suggested_waste_percentage || 15,
+            // Add all the raw data fields
+            ...data.measurements
+          }
         };
 
         console.log('Processed data:', processedData);
@@ -47,14 +46,14 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
     onSuccess: (data: ProcessedPdfData) => {
       console.log('Mutation succeeded with data:', data);
       const formattedMeasurements: RoofMeasurements = {
-        totalArea: data.totalArea,
+        totalArea: data.measurements.total_area,
         pitchBreakdown: [{
-          pitch: data.pitchBreakdown[0].pitch,
-          area: data.totalArea
+          pitch: data.measurements.predominant_pitch || "4/12",
+          area: data.measurements.total_area
         }],
-        suggestedWaste: data.suggestedWaste
+        suggestedWaste: data.measurements.suggested_waste_percentage
       };
-      onSuccess(formattedMeasurements, data);
+      onSuccess(formattedMeasurements, data.measurements);
       toast({
         title: "PDF Processed Successfully",
         description: "Your roof measurements have been extracted.",
@@ -64,7 +63,7 @@ export const usePdfProcessing = ({ onSuccess }: PdfProcessingCallbacks) => {
       console.error('Mutation error:', error);
       toast({
         title: "Error Processing PDF",
-        description: error.message || "Failed to process the PDF report. Please try again.",
+        description: error.message || "Failed to process the PDF report",
         variant: "destructive",
       });
     },

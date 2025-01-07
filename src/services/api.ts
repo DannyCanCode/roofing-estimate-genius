@@ -1,16 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
-import { RoofMeasurements } from "@/types/estimate";
+import { ProcessedPdfData } from "@/types/estimate";
 
-interface EstimateData {
-  materials: Array<{ name: string; quantity: number; unit: string; basePrice: number }>;
-  labor: Array<{ pitch: string; area: number; rate: number }>;
-  totalPrice: number;
-}
-
-export async function processPdfReport(file: File): Promise<RoofMeasurements> {
+export async function processPdfReport(file: File): Promise<ProcessedPdfData> {
   console.log('Starting PDF processing:', file.name);
   
-  // First, upload the file to Supabase storage
+  // Upload file to Supabase storage
   const fileExt = file.name.split('.').pop();
   const fileName = `${Math.random()}.${fileExt}`;
   const filePath = `reports/${fileName}`;
@@ -24,7 +18,7 @@ export async function processPdfReport(file: File): Promise<RoofMeasurements> {
     throw new Error("Failed to upload PDF file");
   }
 
-  // Create a new report record
+  // Create report record
   const { error: dbError } = await supabase
     .from('reports')
     .insert({
@@ -39,11 +33,11 @@ export async function processPdfReport(file: File): Promise<RoofMeasurements> {
     throw new Error("Failed to save report information");
   }
 
-  // Process the PDF using the edge function
+  // Process PDF using edge function
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append('file', file);
 
-  const { data, error } = await supabase.functions.invoke('process-pdf-report', {
+  const { data, error } = await supabase.functions.invoke<ProcessedPdfData>('process-pdf-report', {
     body: formData,
   });
 
@@ -54,31 +48,32 @@ export async function processPdfReport(file: File): Promise<RoofMeasurements> {
       .from('reports')
       .update({
         status: 'error',
-        error_message: error.message || "Failed to process PDF report"
+        error_message: error.message
       })
       .eq('file_path', filePath);
-    throw new Error(error.message || "Failed to process PDF report");
+    throw error;
   }
 
   if (!data) {
-    console.error('No data returned from PDF processing');
+    const errorMessage = "No data returned from PDF processing";
+    console.error(errorMessage);
     // Update report status to error
     await supabase
       .from('reports')
       .update({
         status: 'error',
-        error_message: "No data returned from PDF processing"
+        error_message: errorMessage
       })
       .eq('file_path', filePath);
-    throw new Error("No data returned from PDF processing");
+    throw new Error(errorMessage);
   }
 
-  // Update report status to completed with the processed data
+  // Update report with processed data
   await supabase
     .from('reports')
     .update({
       status: 'completed',
-      metadata: data,
+      metadata: data.measurements,
       processed_text: JSON.stringify(data)
     })
     .eq('file_path', filePath);
@@ -88,25 +83,14 @@ export async function processPdfReport(file: File): Promise<RoofMeasurements> {
 }
 
 export async function generateEstimate(params: {
-  measurements: RoofMeasurements;
+  measurements: any;
   profitMargin: number;
   roofingCategory: string;
-}): Promise<EstimateData> {
-  console.log('Generating estimate with params:', params);
-
+}): Promise<any> {
   const { data, error } = await supabase.functions.invoke('generate-estimate', {
-    body: {
-      measurements: params.measurements,
-      profitMargin: params.profitMargin,
-      roofingCategory: params.roofingCategory,
-    },
+    body: params
   });
 
-  if (error) {
-    console.error('Error generating estimate:', error);
-    throw error;
-  }
-
-  console.log('Estimate generated successfully:', data);
+  if (error) throw error;
   return data;
 }

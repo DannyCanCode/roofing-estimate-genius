@@ -7,6 +7,17 @@ export interface RoofMeasurements {
   suggestedWaste?: number;
 }
 
+export interface ProcessedPdfData {
+  measurements: {
+    total_area: number;
+    predominant_pitch?: string;
+    suggested_waste_percentage?: number;
+    // ... other measurement fields
+  };
+  error?: string;
+  debug?: any;
+}
+
 export interface Material {
   name: string;
   basePrice: number;
@@ -37,9 +48,4 @@ export interface Estimate {
   totalCost: number;
   totalPrice: number;
   category: RoofingCategory;
-}
-
-export interface ProcessedPdfData extends RoofMeasurements {
-  pitch?: string;
-  suggestedWaste?: number;
 }
