@@ -43,7 +43,7 @@ export class TextExtractor {
     }
   }
 
-  extractMeasurements(text: string): ExtractedMeasurements {
+  async extractMeasurements(text: string): Promise<ExtractedMeasurements> {
     console.log('Starting measurement extraction from text');
     
     const measurements: ExtractedMeasurements = {
@@ -52,10 +52,9 @@ export class TextExtractor {
       pitch: "4/12" // Default pitch
     };
 
-    // Try each pattern for total area
+    // Try regex patterns first
     let totalAreaFound = false;
     
-    // First try specific patterns
     for (const pattern of totalAreaPatterns) {
       console.log('Trying pattern:', pattern);
       const match = text.match(pattern);
@@ -71,18 +70,53 @@ export class TextExtractor {
       }
     }
 
-    // If no specific pattern matched, try general area pattern
+    // If regex patterns fail, try OpenAI
     if (!totalAreaFound) {
-      console.log('Trying general area pattern:', generalAreaPattern);
-      const match = text.match(generalAreaPattern);
-      if (match && match[1]) {
-        const value = parseFloat(match[1].replace(/,/g, ''));
-        if (!isNaN(value) && value > 0) {
-          measurements.totalArea = value;
-          measurements.totalSquares = value / 100;
-          totalAreaFound = true;
-          console.log('Found total area using general pattern:', value);
+      console.log('Attempting to extract measurements using OpenAI');
+      try {
+        const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+        if (!openAIApiKey) {
+          throw new Error('OpenAI API key not configured');
         }
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a helpful assistant that extracts roof measurements from text. Return only the number for total roof area in square feet.'
+              },
+              {
+                role: 'user',
+                content: `Extract the total roof area in square feet from this text: ${text}`
+              }
+            ],
+          }),
+        });
+
+        const data = await response.json();
+        const aiResponse = data.choices[0].message.content;
+        console.log('OpenAI response:', aiResponse);
+
+        // Try to extract a number from the AI response
+        const numberMatch = aiResponse.match(/\d[\d,]*/);
+        if (numberMatch) {
+          const value = parseFloat(numberMatch[0].replace(/,/g, ''));
+          if (!isNaN(value) && value > 0) {
+            measurements.totalArea = value;
+            measurements.totalSquares = value / 100;
+            totalAreaFound = true;
+            console.log('Found total area using OpenAI:', value);
+          }
+        }
+      } catch (error) {
+        console.error('Error using OpenAI:', error);
       }
     }
 
