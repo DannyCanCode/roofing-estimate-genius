@@ -9,6 +9,97 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      estimate_items: {
+        Row: {
+          created_at: string | null
+          description: string
+          estimate_id: string | null
+          id: string
+          quantity: number
+          total: number
+          unit: string
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          estimate_id?: string | null
+          id?: string
+          quantity?: number
+          total?: number
+          unit: string
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          estimate_id?: string | null
+          id?: string
+          quantity?: number
+          total?: number
+          unit?: string
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_items_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimates: {
+        Row: {
+          address: string | null
+          amount: number
+          created_at: string | null
+          customer_name: string
+          date: string | null
+          id: string
+          report_id: string | null
+          roofing_type: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          amount?: number
+          created_at?: string | null
+          customer_name: string
+          date?: string | null
+          id?: string
+          report_id?: string | null
+          roofing_type: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          amount?: number
+          created_at?: string | null
+          customer_name?: string
+          date?: string | null
+          id?: string
+          report_id?: string | null
+          roofing_type?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           created_at: string
