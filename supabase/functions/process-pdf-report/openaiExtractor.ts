@@ -7,52 +7,34 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     throw new Error('OpenAI API key not configured');
   }
 
-  // First try to extract measurements directly using regex
-  const measurements = {
-    total_area: extractNumber(text, /Total Roof Area:\s*([\d,.]+)/i),
-    total_area_less_penetrations: 0,
-    predominant_pitch: extractPitch(text, /Predominant Pitch:\s*(\d+)\/12/i),
-    ridges: {
-      length: extractNumber(text, /Ridges Length:\s*([\d,.]+)/i),
-      count: extractNumber(text, /Ridges Count:\s*([\d,.]+)/i)
-    },
-    hips: {
-      length: extractNumber(text, /Hips Length:\s*([\d,.]+)/i),
-      count: extractNumber(text, /Hips Count:\s*([\d,.]+)/i)
-    },
-    valleys: {
-      length: extractNumber(text, /Valleys Length:\s*([\d,.]+)/i),
-      count: extractNumber(text, /Valleys Count:\s*([\d,.]+)/i)
-    },
-    rakes: {
-      length: extractNumber(text, /Rakes Length:\s*([\d,.]+)/i),
-      count: extractNumber(text, /Rakes Count:\s*([\d,.]+)/i)
-    },
-    eaves: {
-      length: extractNumber(text, /Eaves Length:\s*([\d,.]+)/i),
-      count: extractNumber(text, /Eaves Count:\s*([\d,.]+)/i)
-    },
-    suggested_waste_percentage: extractNumber(text, /Suggested Waste %?:\s*([\d,.]+)/i)
-  };
+  // Log a sample of the text we're processing
+  console.log('Processing PDF text sample:', text.substring(0, 500));
+  
+  // First try direct regex extraction
+  const totalAreaMatch = text.match(/Total Area[^=\n]*[:=]\s*([\d,\.]+)/i);
+  console.log('Direct regex match for total area:', totalAreaMatch?.[1] || 'not found');
 
-  // If we found the measurements directly via regex, return them
-  if (measurements.total_area > 0) {
-    console.log('Found measurements directly:', measurements);
-    return measurements;
+  if (totalAreaMatch && totalAreaMatch[1]) {
+    const totalArea = parseFloat(totalAreaMatch[1].replace(/,/g, ''));
+    if (totalArea > 0) {
+      console.log('Found total area directly:', totalArea);
+      // Continue with other direct extractions...
+    }
   }
 
   // If direct extraction failed, try with OpenAI
-  const prompt = `Extract these exact measurements from this EagleView roof report and return ONLY a JSON object (no explanation or markdown):
+  const prompt = `Extract ONLY the exact measurements found in this EagleView roof report. Return ONLY a JSON object with numeric values. Use null for any value not explicitly found in the text. Do not invent or estimate values.
+
+  Required format:
   {
-    "total_area": number,
-    "total_area_less_penetrations": number,
-    "predominant_pitch": "string in X/12 format",
-    "ridges": { "length": number, "count": number },
-    "hips": { "length": number, "count": number },
-    "valleys": { "length": number, "count": number },
-    "rakes": { "length": number, "count": number },
-    "eaves": { "length": number, "count": number },
-    "suggested_waste_percentage": number
+    "total_area": number or null,
+    "predominant_pitch": "string in X/12 format" or null,
+    "ridges": { "length": number or null, "count": number or null },
+    "hips": { "length": number or null, "count": number or null },
+    "valleys": { "length": number or null, "count": number or null },
+    "rakes": { "length": number or null, "count": number or null },
+    "eaves": { "length": number or null, "count": number or null },
+    "suggested_waste_percentage": number or null
   }
 
   Here's the report text:
@@ -70,7 +52,7 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
         messages: [
           { 
             role: 'system', 
-            content: 'You are a specialized measurement extractor for EagleView roof reports. Return ONLY the JSON object with measurements, no explanation or markdown.' 
+            content: 'You are a precise measurement extractor. Only return measurements explicitly found in the text. Use null for missing values. Never guess or provide default values.' 
           },
           { role: 'user', content: prompt }
         ],
@@ -85,62 +67,44 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     const data = await response.json();
     console.log('OpenAI raw response:', data);
 
-    if (!data.choices?.[0]?.message?.content) {
-      throw new Error('Invalid response from OpenAI');
-    }
-
     let content = data.choices[0].message.content.trim();
-    
-    // Remove markdown code fences if present
     content = content.replace(/^```json\n|\n```$/g, '');
     
-    // Extract JSON from the response
-    const aiMeasurements = JSON.parse(content);
-    console.log('AI parsed measurements:', aiMeasurements);
+    const measurements = JSON.parse(content);
+    console.log('Parsed measurements:', measurements);
 
-    // Validate the measurements - if no total area found, throw specific error
-    if (!aiMeasurements.total_area || aiMeasurements.total_area <= 0) {
-      const error = new Error('Could not find total area in PDF');
+    // Validate total area - must be present and valid
+    if (!measurements.total_area || measurements.total_area <= 0) {
+      const error = new Error('Could not find valid total_area in the PDF');
       error.name = 'MeasurementNotFoundError';
       throw error;
     }
 
-    // Combine direct measurements with AI measurements, preferring direct measurements
-    return {
-      ...aiMeasurements,
-      ...Object.fromEntries(
-        Object.entries(measurements).filter(([_, value]) => 
-          typeof value === 'number' ? value > 0 : 
-          typeof value === 'object' ? (value.length > 0 || value.count > 0) : 
-          value
-        )
-      )
-    };
+    return measurements;
   } catch (error) {
-    console.error('OpenAI extraction error:', error);
+    console.error('Extraction error:', error);
     
-    // If it's a measurement not found error, rethrow it to be handled as 422
     if (error.name === 'MeasurementNotFoundError') {
       throw error;
     }
     
-    // For other errors, throw as is (will be handled as 500)
-    throw error;
+    throw new Error(`Failed to extract measurements: ${error.message}`);
   }
 }
 
-function extractNumber(text: string, pattern: RegExp): number {
+function extractNumber(text: string, pattern: RegExp): number | null {
   const match = text.match(pattern);
   if (match && match[1]) {
-    return parseFloat(match[1].replace(/,/g, ''));
+    const value = parseFloat(match[1].replace(/,/g, ''));
+    return !isNaN(value) && value > 0 ? value : null;
   }
-  return 0;
+  return null;
 }
 
-function extractPitch(text: string, pattern: RegExp): string {
+function extractPitch(text: string, pattern: RegExp): string | null {
   const match = text.match(pattern);
   if (match && match[1]) {
     return `${match[1]}/12`;
   }
-  return "0/12";
+  return null;
 }

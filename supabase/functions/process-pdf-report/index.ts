@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -29,7 +28,7 @@ serve(async (req) => {
 
     console.log('Processing PDF file:', file.name);
     
-    // Read the file content
+    // Read and clean the file content
     const fileContent = await file.text();
     const cleanedText = cleanText(fileContent);
     
@@ -37,9 +36,8 @@ serve(async (req) => {
     console.log('Cleaned text length:', cleanedText.length);
 
     try {
-      // Extract measurements using OpenAI
       const measurements = await extractWithOpenAI(cleanedText);
-      console.log('Extracted measurements:', measurements);
+      console.log('Final extracted measurements:', measurements);
 
       return new Response(
         JSON.stringify({ measurements }),
@@ -51,20 +49,15 @@ serve(async (req) => {
         }
       );
     } catch (error) {
-      // Handle measurement not found errors as 422
       if (error.name === 'MeasurementNotFoundError') {
         return new Response(
           JSON.stringify({ error: error.message }),
           { 
             status: 422,
-            headers: { 
-              ...corsHeaders,
-              'Content-Type': 'application/json' 
-            } 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         );
       }
-      // Re-throw other errors to be handled as 500
       throw error;
     }
   } catch (error) {
@@ -73,10 +66,7 @@ serve(async (req) => {
       JSON.stringify({ error: error.message }),
       { 
         status: 500,
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json' 
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
