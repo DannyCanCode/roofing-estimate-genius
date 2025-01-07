@@ -7,6 +7,41 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     throw new Error('OpenAI API key not configured');
   }
 
+  // First try to extract measurements directly using regex
+  const measurements = {
+    total_area: extractNumber(text, /Total Roof Area:\s*([\d,.]+)/i),
+    total_area_less_penetrations: 0,
+    predominant_pitch: extractPitch(text, /Predominant Pitch:\s*(\d+)\/12/i),
+    ridges: {
+      length: extractNumber(text, /Ridges Length:\s*([\d,.]+)/i),
+      count: extractNumber(text, /Ridges Count:\s*([\d,.]+)/i)
+    },
+    hips: {
+      length: extractNumber(text, /Hips Length:\s*([\d,.]+)/i),
+      count: extractNumber(text, /Hips Count:\s*([\d,.]+)/i)
+    },
+    valleys: {
+      length: extractNumber(text, /Valleys Length:\s*([\d,.]+)/i),
+      count: extractNumber(text, /Valleys Count:\s*([\d,.]+)/i)
+    },
+    rakes: {
+      length: extractNumber(text, /Rakes Length:\s*([\d,.]+)/i),
+      count: extractNumber(text, /Rakes Count:\s*([\d,.]+)/i)
+    },
+    eaves: {
+      length: extractNumber(text, /Eaves Length:\s*([\d,.]+)/i),
+      count: extractNumber(text, /Eaves Count:\s*([\d,.]+)/i)
+    },
+    suggested_waste_percentage: extractNumber(text, /Suggested Waste %?:\s*([\d,.]+)/i)
+  };
+
+  // If we found the measurements directly, return them
+  if (measurements.total_area > 0) {
+    console.log('Found measurements directly:', measurements);
+    return measurements;
+  }
+
+  // If direct extraction failed, try with OpenAI
   const prompt = `You are analyzing an EagleView roof measurement report. Extract measurements and return ONLY a JSON object with these exact fields (no explanation or markdown):
   {
     "total_area": number,
@@ -19,12 +54,6 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     "eaves": { "length": number, "count": number },
     "suggested_waste_percentage": number
   }
-
-  Look for patterns like:
-  - "Total Area: X sq ft" or "Total Roof Area: X"
-  - "Pitch: X/12" or "Predominant Pitch: X/12"
-  - "Ridge Length: X ft" and "Ridge Count: Y"
-  - "Waste Factor: X%" or "Suggested Waste: X%"
 
   Here's the report text:
   ${text.substring(0, 3000)}`;
@@ -68,17 +97,35 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
       throw new Error('No JSON found in OpenAI response');
     }
 
-    const measurements = JSON.parse(jsonMatch[0]);
-    console.log('Parsed measurements:', measurements);
+    const aiMeasurements = JSON.parse(jsonMatch[0]);
+    console.log('AI parsed measurements:', aiMeasurements);
 
-    if (!measurements.total_area) {
-      console.log('Full text sample:', text.substring(0, 1000));
-      throw new Error('Could not extract total area from PDF. Please ensure this is an EagleView report.');
-    }
-
-    return measurements;
+    // Combine direct measurements with AI measurements, preferring direct measurements
+    return {
+      ...aiMeasurements,
+      ...measurements
+    };
   } catch (error) {
     console.error('OpenAI extraction error:', error);
+    if (measurements.total_area > 0) {
+      return measurements;
+    }
     throw error;
   }
+}
+
+function extractNumber(text: string, pattern: RegExp): number {
+  const match = text.match(pattern);
+  if (match && match[1]) {
+    return parseFloat(match[1].replace(/,/g, ''));
+  }
+  return 0;
+}
+
+function extractPitch(text: string, pattern: RegExp): string {
+  const match = text.match(pattern);
+  if (match && match[1]) {
+    return `${match[1]}/12`;
+  }
+  return "0/12";
 }

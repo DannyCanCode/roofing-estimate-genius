@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { extractWithOpenAI } from "./openaiExtractor.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { cleanText } from "./utils/text-processing.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -22,28 +23,15 @@ serve(async (req) => {
 
     console.log('Processing PDF file:', file.name);
     
-    // Read the file content as text
-    const text = await file.text();
+    // Read the file content
+    const fileContent = await file.text();
+    const cleanedText = cleanText(fileContent);
     
-    // Clean and extract meaningful text content
-    const cleanedText = text
-      .replace(/%PDF.*?(?=%)/gs, '') // Remove PDF header
-      .replace(/endobj.*?obj/gs, ' ') // Remove PDF object markers
-      .replace(/stream.*?endstream/gs, ' ') // Remove binary streams
-      .replace(/[^\x20-\x7E\n]/g, ' ') // Keep only printable ASCII
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    // Look for common EagleView report markers
-    const reportContent = cleanedText.match(/Report.*?Summary|Measurement\s+Report|Total\s+Area|Roof\s+Measurements/i)?.[0] || cleanedText;
-
-    console.log('Cleaned text length:', reportContent.length);
-    console.log('Sample of cleaned text:', reportContent.substring(0, 500));
+    console.log('Sample of cleaned text:', cleanedText.substring(0, 1000));
+    console.log('Cleaned text length:', cleanedText.length);
 
     // Extract measurements using OpenAI
-    const measurements = await extractWithOpenAI(reportContent);
-    
-    console.log('Extracted measurements:', measurements);
+    const measurements = await extractWithOpenAI(cleanedText);
 
     return new Response(
       JSON.stringify({ measurements }),
