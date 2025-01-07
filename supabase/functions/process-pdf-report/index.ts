@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { TextExtractor } from './extractors/text-extractor.ts';
-import { EagleViewParser } from './extractors/eagleview-parser.ts';
-import { MeasurementsValidator } from './validators/measurements-validator.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,25 +26,24 @@ serve(async (req) => {
     const uint8Array = new Uint8Array(arrayBuffer);
 
     const textExtractor = new TextExtractor();
-    const parser = new EagleViewParser();
-    const validator = new MeasurementsValidator();
-
+    
     console.log('Starting text extraction');
     const text = await textExtractor.extractText(uint8Array);
     console.log('Text extracted, length:', text.length);
     
     console.log('Parsing measurements');
-    const measurements = parser.parseMeasurements(text);
+    const measurements = textExtractor.extractMeasurements(text);
     console.log('Parsed measurements:', measurements);
 
-    console.log('Validating measurements');
-    if (!validator.validate(measurements)) {
-      throw new Error('Could not extract valid measurements from the PDF. Please ensure you are uploading an EagleView report.');
+    if (!measurements.totalArea) {
+      throw new Error('Could not extract total area from PDF');
     }
 
-    console.log('Successfully processed PDF');
     return new Response(
-      JSON.stringify({ measurements }),
+      JSON.stringify({ 
+        measurements,
+        debug: { text: text.substring(0, 500) + '...' } 
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }

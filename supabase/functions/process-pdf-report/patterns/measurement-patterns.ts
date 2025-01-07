@@ -1,0 +1,23 @@
+export const measurementPatterns = {
+  totalRoofArea: /Total Area[^=\n]*=\s*([\d,]+)/i,
+  totalRoofSquares: /Total Squares[^=\n]*=\s*([\d.]+)/i,
+  predominantPitch: /Predominant Pitch[^=\n]*=\s*(\d+)\/12/i,
+  ridgesLength: /Ridges[^=\n]*=\s*(\d+)\s*ft/i,
+  ridgesCount: /Ridges[^=\n]*Count[^=\n]*=\s*(\d+)/i,
+  hipsLength: /Hips[^=\n]*=\s*(\d+)\s*ft/i,
+  hipsCount: /Hips[^=\n]*Count[^=\n]*=\s*(\d+)/i,
+  valleysLength: /Valleys[^=\n]*=\s*(\d+)\s*ft/i,
+  valleysCount: /Valleys[^=\n]*Count[^=\n]*=\s*(\d+)/i,
+  rakesLength: /Rakes[^=\n]*=\s*(\d+)\s*ft/i,
+  rakesCount: /Rakes[^=\n]*Count[^=\n]*=\s*(\d+)/i,
+  eavesLength: /Eaves[^=\n]*=\s*(\d+)\s*ft/i,
+  eavesCount: /Eaves[^=\n]*Count[^=\n]*=\s*(\d+)/i,
+  dripEdgeLength: /Drip Edge[^=\n]*=\s*(\d+)\s*ft/i,
+  flashingLength: /Flashing[^=\n]*=\s*(\d+)\s*ft/i,
+  stepFlashingLength: /Step Flashing[^=\n]*=\s*(\d+)\s*ft/i,
+  totalPenetrationsArea: /Total Penetrations[^=\n]*=\s*(\d+)/i,
+  wasteFactorArea: /Waste Factor Area[^=\n]*=\s*(\d+)/i,
+  suggestedWasteFactor: /Suggested Waste Factor[^=\n]*=\s*(\d+)/i,
+  flatArea: /Flat Area[^=\n]*=\s*(\d+)/i,
+  numberOfStories: /Number of Stories[^=\n]*=\s*(\d+)/i
+};
