@@ -17,7 +17,16 @@ serve(async (req) => {
     const file = formData.get('file') as File;
     
     if (!file) {
-      throw new Error('No file provided');
+      return new Response(
+        JSON.stringify({ 
+          error: 'No file provided',
+          measurements: null 
+        }),
+        { 
+          status: 422,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('Received file:', file.name, 'Size:', file.size);
@@ -27,67 +36,45 @@ serve(async (req) => {
     const textExtractor = new TextExtractor();
     console.log('Starting text extraction');
     
-    try {
-      const text = await textExtractor.extractText(uint8Array);
-      console.log('Text extracted successfully, length:', text.length);
-      console.log('Sample of extracted text:', text.substring(0, 500));
-      
-      const measurements = textExtractor.extractMeasurements(text);
-      console.log('Parsed measurements:', measurements);
+    const text = await textExtractor.extractText(uint8Array);
+    console.log('Text extracted successfully, length:', text.length);
+    
+    const measurements = textExtractor.extractMeasurements(text);
+    console.log('Parsed measurements:', measurements);
 
-      const formattedMeasurements = {
-        measurements: {
-          total_area: measurements.totalArea || 0,
-          predominant_pitch: measurements.pitch || "4/12",
-          suggested_waste_percentage: measurements.suggestedWaste || 15,
-          number_of_stories: measurements.numberOfStories || 1,
-          ridges: {
-            length: measurements.ridgesLength || 0,
-            count: measurements.ridgesCount || 0
-          },
-          hips: {
-            length: measurements.hipsLength || 0,
-            count: measurements.hipsCount || 0
-          },
-          valleys: {
-            length: measurements.valleysLength || 0,
-            count: measurements.valleysCount || 0
-          },
-          rakes: {
-            length: measurements.rakesLength || 0,
-            count: measurements.rakesCount || 0
-          },
-          eaves: {
-            length: measurements.eavesLength || 0,
-            count: measurements.eavesCount || 0
-          }
-        }
-      };
-
+    // Check if we found a valid total area
+    if (!measurements.totalArea || measurements.totalArea <= 0) {
       return new Response(
-        JSON.stringify(formattedMeasurements),
+        JSON.stringify({
+          error: 'Could not find total area in PDF',
+          measurements,
+          requiresManualReview: true,
+          debug: { extractedText: text.substring(0, 1000) }
+        }),
         { 
+          status: 422,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
-
-    } catch (error) {
-      console.error('Error extracting text or measurements:', error);
-      console.error('Stack trace:', error.stack);
-      throw error;
     }
+
+    return new Response(
+      JSON.stringify({ measurements }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
 
   } catch (error) {
     console.error('Error processing PDF:', error);
-    console.error('Stack trace:', error.stack);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error processing PDF',
         debug: { error: error instanceof Error ? error.stack : 'No stack trace available' }
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }

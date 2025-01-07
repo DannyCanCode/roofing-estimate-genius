@@ -22,6 +22,11 @@ export class TextExtractor {
       console.log('Raw extracted text sample (first 1000 chars):', text.substring(0, 1000));
       const cleanedText = cleanText(text);
       console.log('Cleaned text sample (first 1000 chars):', cleanedText.substring(0, 1000));
+      
+      // Log entire text in chunks for debugging
+      console.log('Full text content in chunks:');
+      logTextChunks(cleanedText);
+      
       return cleanedText;
     } catch (error) {
       console.error('Error extracting text:', error);
@@ -52,12 +57,17 @@ export class TextExtractor {
 
   extractMeasurements(text: string): ExtractedMeasurements {
     console.log('Starting measurement extraction from text');
-    logTextChunks(text);
     
-    const measurements: ExtractedMeasurements = {};
-    let totalAreaFound = false;
+    const measurements: ExtractedMeasurements = {
+      totalArea: 0,
+      totalSquares: 0,
+      pitch: "4/12" // Default pitch if none found
+    };
 
     // Try each pattern for total area
+    let totalAreaFound = false;
+    
+    // First try specific patterns
     for (const pattern of totalAreaPatterns) {
       console.log('Trying pattern:', pattern);
       const value = extractNumber(text, pattern);
@@ -70,7 +80,7 @@ export class TextExtractor {
       }
     }
 
-    // Try general area pattern as fallback
+    // If no specific pattern matched, try general area pattern
     if (!totalAreaFound) {
       console.log('Trying general area pattern:', generalAreaPattern);
       const value = extractNumber(text, generalAreaPattern);
@@ -80,12 +90,6 @@ export class TextExtractor {
         totalAreaFound = true;
         console.log('Found total area using general pattern:', value);
       }
-    }
-
-    // Log the entire text if no area was found
-    if (!totalAreaFound) {
-      console.error('Could not find total area. Full text content:', text);
-      throw new Error('Could not extract total area from PDF. Please ensure the PDF contains valid measurements.');
     }
 
     // Extract pitch
@@ -98,6 +102,7 @@ export class TextExtractor {
       }
     }
 
+    // Return measurements even if area not found
     console.log('Final extracted measurements:', measurements);
     return measurements;
   }
