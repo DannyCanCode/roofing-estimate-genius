@@ -7,32 +7,19 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     throw new Error('OpenAI API key not configured');
   }
 
-  const prompt = `You are a PDF measurement extractor. Extract ONLY these measurements from the provided PDF text:
+  const prompt = `Extract ONLY these measurements from the provided PDF text. Return ONLY a JSON object with these exact fields (no explanation):
   - Total roof area (in square feet)
+  - Total area less penetrations (in square feet)
   - Predominant roof pitch (in X/12 format)
-  - Suggested waste percentage
-  - Ridge length and count
-  - Hip length and count
-  - Valley length and count
-  - Rake length and count
-  - Eave length and count
-  - Number of stories
-
-  Return ONLY a JSON object with these exact fields (no explanation, no markdown):
-  {
-    "total_area": number,
-    "predominant_pitch": "string (X/12 format)",
-    "suggested_waste_percentage": number,
-    "ridges": { "length": number, "count": number },
-    "hips": { "length": number, "count": number },
-    "valleys": { "length": number, "count": number },
-    "rakes": { "length": number, "count": number },
-    "eaves": { "length": number, "count": number },
-    "number_of_stories": number
-  }
+  - Ridges length and count
+  - Hips length and count
+  - Valleys length and count
+  - Rakes length and count
+  - Eaves length and count
+  - Suggested waste percentage (from the waste calculation table, use the suggested percentage)
 
   Here's the text to analyze:
-  ${text.substring(0, 4000)}`;
+  ${text}`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -46,7 +33,7 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
         messages: [
           { 
             role: 'system', 
-            content: 'You are a measurement extractor. Return only the exact JSON structure requested with accurate measurements from the PDF. No explanations or additional formatting.' 
+            content: 'You are a measurement extractor. Return only the exact JSON structure requested with accurate measurements from the PDF. Format lengths as "X ft (Y count)" where applicable.' 
           },
           { role: 'user', content: prompt }
         ],
@@ -71,25 +58,16 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     const measurements = JSON.parse(content);
     console.log('Parsed measurements:', measurements);
 
-    // Validate all required fields are present and in correct format
-    if (typeof measurements.total_area !== 'number' || measurements.total_area <= 0) {
-      throw new Error('Invalid or missing total area');
-    }
-
-    if (!measurements.predominant_pitch?.match(/^\d+\/12$/)) {
-      throw new Error('Invalid pitch format');
-    }
-
     return {
       total_area: measurements.total_area,
+      total_area_less_penetrations: measurements.total_area_less_penetrations,
       predominant_pitch: measurements.predominant_pitch,
-      suggested_waste_percentage: measurements.suggested_waste_percentage || 15,
-      ridges: measurements.ridges || { length: 0, count: 0 },
-      hips: measurements.hips || { length: 0, count: 0 },
-      valleys: measurements.valleys || { length: 0, count: 0 },
-      rakes: measurements.rakes || { length: 0, count: 0 },
-      eaves: measurements.eaves || { length: 0, count: 0 },
-      number_of_stories: measurements.number_of_stories || 1
+      ridges: measurements.ridges,
+      hips: measurements.hips,
+      valleys: measurements.valleys,
+      rakes: measurements.rakes,
+      eaves: measurements.eaves,
+      suggested_waste_percentage: measurements.suggested_waste_percentage
     };
   } catch (error) {
     console.error('OpenAI extraction error:', error);
