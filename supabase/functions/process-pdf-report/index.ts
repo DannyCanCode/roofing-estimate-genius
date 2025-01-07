@@ -22,10 +22,23 @@ serve(async (req) => {
     }
 
     console.log('Processing PDF file:', file.name);
-    const text = await file.text();
     
+    // Read the file as text
+    const pdfText = await file.text();
+    
+    // Clean up the text by removing PDF binary data markers and unnecessary whitespace
+    const cleanedText = pdfText
+      .replace(/%PDF-.*?(?=\n)/g, '')
+      .replace(/%%EOF.*$/g, '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    console.log('Cleaned text length:', cleanedText.length);
+    console.log('Sample of cleaned text:', cleanedText.substring(0, 500));
+
     // Extract measurements using OpenAI
-    const measurements = await extractWithOpenAI(text);
+    const measurements = await extractWithOpenAI(cleanedText);
     
     console.log('Extracted measurements:', measurements);
 

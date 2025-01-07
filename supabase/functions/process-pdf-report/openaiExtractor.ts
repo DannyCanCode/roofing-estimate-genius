@@ -18,8 +18,8 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
   - Eaves length and count
   - Suggested waste percentage (from the waste calculation table, use the suggested percentage)
 
-  Here's the text to analyze:
-  ${text}`;
+  Here's the text to analyze (showing first 2000 chars):
+  ${text.substring(0, 2000)}`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -33,7 +33,7 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
         messages: [
           { 
             role: 'system', 
-            content: 'You are a measurement extractor. Return only the exact JSON structure requested with accurate measurements from the PDF. Format lengths as "X ft (Y count)" where applicable.' 
+            content: 'You are a measurement extractor. Return only the exact JSON structure requested with accurate measurements from the PDF. Format lengths as numbers and counts as integers.' 
           },
           { role: 'user', content: prompt }
         ],
