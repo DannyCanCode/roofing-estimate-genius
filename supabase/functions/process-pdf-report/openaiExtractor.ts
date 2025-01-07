@@ -35,7 +35,7 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     suggested_waste_percentage: extractNumber(text, /Suggested Waste %?:\s*([\d,.]+)/i)
   };
 
-  // If we found the measurements directly, return them
+  // If we found the measurements directly via regex, return them
   if (measurements.total_area > 0) {
     console.log('Found measurements directly:', measurements);
     return measurements;
@@ -91,18 +91,18 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
 
     let content = data.choices[0].message.content.trim();
     
-    // Extract JSON from the response, removing any markdown or explanatory text
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('No JSON found in OpenAI response');
-    }
-
-    const aiMeasurements = JSON.parse(jsonMatch[0]);
+    // Remove markdown code fences if present
+    content = content.replace(/^```json\n|\n```$/g, '');
+    
+    // Extract JSON from the response
+    const aiMeasurements = JSON.parse(content);
     console.log('AI parsed measurements:', aiMeasurements);
 
-    // Validate the measurements
+    // Validate the measurements - if no total area found, throw specific error
     if (!aiMeasurements.total_area || aiMeasurements.total_area <= 0) {
-      throw new Error('Could not extract total area from PDF');
+      const error = new Error('Could not find total area in PDF');
+      error.name = 'MeasurementNotFoundError';
+      throw error;
     }
 
     // Combine direct measurements with AI measurements, preferring direct measurements
@@ -118,9 +118,13 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     };
   } catch (error) {
     console.error('OpenAI extraction error:', error);
-    if (measurements.total_area > 0) {
-      return measurements;
+    
+    // If it's a measurement not found error, rethrow it to be handled as 422
+    if (error.name === 'MeasurementNotFoundError') {
+      throw error;
     }
+    
+    // For other errors, throw as is (will be handled as 500)
     throw error;
   }
 }

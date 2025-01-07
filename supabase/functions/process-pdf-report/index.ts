@@ -18,7 +18,13 @@ serve(async (req) => {
     const file = formData.get('file') as File;
     
     if (!file) {
-      throw new Error('No file provided');
+      return new Response(
+        JSON.stringify({ error: 'No file provided' }), 
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     console.log('Processing PDF file:', file.name);
@@ -30,23 +36,37 @@ serve(async (req) => {
     console.log('Sample of cleaned text:', cleanedText.substring(0, 1000));
     console.log('Cleaned text length:', cleanedText.length);
 
-    // Extract measurements using OpenAI
-    const measurements = await extractWithOpenAI(cleanedText);
-    console.log('Extracted measurements:', measurements);
+    try {
+      // Extract measurements using OpenAI
+      const measurements = await extractWithOpenAI(cleanedText);
+      console.log('Extracted measurements:', measurements);
 
-    if (!measurements.total_area || measurements.total_area <= 0) {
-      throw new Error('Could not extract total area from PDF');
-    }
-
-    return new Response(
-      JSON.stringify({ measurements }),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json' 
-        } 
+      return new Response(
+        JSON.stringify({ measurements }),
+        { 
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    } catch (error) {
+      // Handle measurement not found errors as 422
+      if (error.name === 'MeasurementNotFoundError') {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { 
+            status: 422,
+            headers: { 
+              ...corsHeaders,
+              'Content-Type': 'application/json' 
+            } 
+          }
+        );
       }
-    );
+      // Re-throw other errors to be handled as 500
+      throw error;
+    }
   } catch (error) {
     console.error('Error processing PDF:', error);
     return new Response(
