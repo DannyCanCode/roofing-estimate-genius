@@ -35,7 +35,7 @@ export interface EstimateItem {
   description: string;
   quantity: number;
   unit: string;
-  unitPrice: number;
+  unit_price: number;  // Changed from unitPrice to unit_price to match database schema
   total: number;
 }
 
