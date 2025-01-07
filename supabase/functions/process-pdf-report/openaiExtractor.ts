@@ -32,7 +32,7 @@ export async function extractWithOpenAI(text: string) {
   Here's the text:
   ${cleanText.substring(0, 4000)}
 
-  Return ONLY the JSON object, no other text. If you can't find a value, use null.`;
+  Return ONLY the JSON object, no other text. If you can't find a value, use null. DO NOT use markdown formatting or code blocks in your response.`;
 
   try {
     console.log('Sending request to OpenAI');
@@ -47,10 +47,11 @@ export async function extractWithOpenAI(text: string) {
         messages: [
           { 
             role: 'system', 
-            content: 'You are a helpful assistant that extracts roofing measurements from PDF text. Return only JSON.' 
+            content: 'You are a helpful assistant that extracts roofing measurements from PDF text. Return only a JSON object without any markdown formatting.' 
           },
           { role: 'user', content: prompt }
         ],
+        temperature: 0.3, // Lower temperature for more consistent output
       }),
     });
 
@@ -71,7 +72,14 @@ export async function extractWithOpenAI(text: string) {
     console.log('Extracted text:', extractedText);
 
     try {
-      const measurements = JSON.parse(extractedText);
+      // Remove any potential markdown formatting
+      const cleanJson = extractedText
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      
+      console.log('Cleaned JSON:', cleanJson);
+      const measurements = JSON.parse(cleanJson);
       
       // Validate the parsed measurements
       if (typeof measurements.total_area !== 'number' && measurements.total_area !== null) {
@@ -85,6 +93,7 @@ export async function extractWithOpenAI(text: string) {
       };
     } catch (error) {
       console.error('Error parsing OpenAI response:', error);
+      console.error('Response content:', extractedText);
       throw new Error('Failed to parse OpenAI response');
     }
   } catch (error) {
