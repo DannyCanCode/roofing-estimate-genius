@@ -10,6 +10,7 @@ interface FileUploadProps {
 
 export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadProps) {
   const { toast } = useToast();
+  const [retryCount, setRetryCount] = useState(0);
 
   const handleFileAccepted = useCallback(
     async (file: File) => {
@@ -27,10 +28,26 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
           description: "Your file is being processed...",
         });
 
-        await FileUploadService.uploadFile(pdfFile);
-        await onFileAccepted(pdfFile);
-        
-        console.log("File processing completed:", file.name);
+        try {
+          await FileUploadService.uploadFile(pdfFile);
+          await onFileAccepted(pdfFile);
+          setRetryCount(0); // Reset retry count on success
+          console.log("File processing completed:", file.name);
+        } catch (uploadError) {
+          console.error("Upload error:", uploadError);
+          if (retryCount < 2) {
+            // Retry the upload
+            setRetryCount(prev => prev + 1);
+            toast({
+              title: "Retrying upload",
+              description: "Upload failed, retrying...",
+            });
+            // Wait a moment before retrying
+            setTimeout(() => handleFileAccepted(file), 2000);
+            return;
+          }
+          throw uploadError;
+        }
       } catch (error) {
         console.error("Error processing file:", error);
         
@@ -46,7 +63,7 @@ export function FileUpload({ onFileAccepted, isProcessing = false }: FileUploadP
         });
       }
     },
-    [onFileAccepted, toast]
+    [onFileAccepted, toast, retryCount]
   );
 
   return (
