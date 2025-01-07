@@ -7,26 +7,34 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     throw new Error('OpenAI API key not configured');
   }
 
-  console.log('Starting OpenAI extraction with text length:', text.length);
+  const prompt = `You are a PDF measurement extractor. Extract ONLY these measurements from the provided PDF text:
+  - Total roof area (in square feet)
+  - Predominant roof pitch (in X/12 format)
+  - Suggested waste percentage
+  - Ridge length and count
+  - Hip length and count
+  - Valley length and count
+  - Rake length and count
+  - Eave length and count
+  - Number of stories
 
-  const prompt = `Extract roofing measurements from this text. Return ONLY a JSON object with these fields:
-  - total_area (number): The total roof area in square feet
-  - predominant_pitch (string): The main roof pitch in X/12 format (e.g., "4/12")
-  - suggested_waste_percentage (number): The suggested waste percentage
+  Return ONLY a JSON object with these exact fields (no explanation, no markdown):
+  {
+    "total_area": number,
+    "predominant_pitch": "string (X/12 format)",
+    "suggested_waste_percentage": number,
+    "ridges": { "length": number, "count": number },
+    "hips": { "length": number, "count": number },
+    "valleys": { "length": number, "count": number },
+    "rakes": { "length": number, "count": number },
+    "eaves": { "length": number, "count": number },
+    "number_of_stories": number
+  }
 
-  Look for phrases like:
-  - "Total Area = X sq ft"
-  - "Total Squares = X"
-  - "Pitch = X/12"
-  - "Waste Factor = X%"
-
-  Here's the text:
-  ${text.substring(0, 4000)}
-
-  Return ONLY a raw JSON object with these three fields. No explanations, no markdown.`;
+  Here's the text to analyze:
+  ${text.substring(0, 4000)}`;
 
   try {
-    console.log('Sending request to OpenAI');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -34,11 +42,11 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           { 
             role: 'system', 
-            content: 'You are a measurement extractor. Return only raw JSON with total_area (number), predominant_pitch (string), and suggested_waste_percentage (number). No explanations or formatting.' 
+            content: 'You are a measurement extractor. Return only the exact JSON structure requested with accurate measurements from the PDF. No explanations or additional formatting.' 
           },
           { role: 'user', content: prompt }
         ],
@@ -47,39 +55,42 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('OpenAI API error:', error);
-      throw new Error(`OpenAI API error: ${error}`);
+      throw new Error(`OpenAI API error: ${await response.text()}`);
     }
 
     const data = await response.json();
-    console.log('OpenAI response:', data);
+    console.log('OpenAI raw response:', data);
 
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid response from OpenAI');
     }
 
-    const content = data.choices[0].message.content.trim();
-    console.log('Raw content:', content);
+    let content = data.choices[0].message.content.trim();
+    content = content.replace(/```json\n?|\n?```/g, '');
 
-    try {
-      const measurements = JSON.parse(content);
-      
-      // Validate the measurements
-      if (typeof measurements.total_area !== 'number' && measurements.total_area !== null) {
-        throw new Error('Invalid total_area format');
-      }
+    const measurements = JSON.parse(content);
+    console.log('Parsed measurements:', measurements);
 
-      return {
-        total_area: measurements.total_area || 0,
-        predominant_pitch: measurements.predominant_pitch || '4/12',
-        suggested_waste_percentage: measurements.suggested_waste_percentage || 15
-      };
-    } catch (error) {
-      console.error('Error parsing measurements:', error);
-      console.error('Raw content was:', content);
-      throw new Error(`Failed to parse measurements: ${error.message}`);
+    // Validate all required fields are present and in correct format
+    if (typeof measurements.total_area !== 'number' || measurements.total_area <= 0) {
+      throw new Error('Invalid or missing total area');
     }
+
+    if (!measurements.predominant_pitch?.match(/^\d+\/12$/)) {
+      throw new Error('Invalid pitch format');
+    }
+
+    return {
+      total_area: measurements.total_area,
+      predominant_pitch: measurements.predominant_pitch,
+      suggested_waste_percentage: measurements.suggested_waste_percentage || 15,
+      ridges: measurements.ridges || { length: 0, count: 0 },
+      hips: measurements.hips || { length: 0, count: 0 },
+      valleys: measurements.valleys || { length: 0, count: 0 },
+      rakes: measurements.rakes || { length: 0, count: 0 },
+      eaves: measurements.eaves || { length: 0, count: 0 },
+      number_of_stories: measurements.number_of_stories || 1
+    };
   } catch (error) {
     console.error('OpenAI extraction error:', error);
     throw error;
