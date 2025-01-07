@@ -2,6 +2,48 @@ import { ProcessedPdfData } from "./types.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
+// Helper to extract and validate measurements with context
+const extractWithContext = (text: string, pattern: RegExp, contextWindow: number = 50): { value: number | null; context: string } => {
+  const matches = Array.from(text.matchAll(new RegExp(pattern, 'gi')));
+  
+  for (const match of matches) {
+    if (!match.index) continue;
+    
+    const start = Math.max(0, match.index - contextWindow);
+    const end = Math.min(text.length, match.index + match[0].length + contextWindow);
+    const context = text.slice(start, end).trim();
+    
+    // Check if context contains relevant keywords
+    const hasRelevantContext = /(?:total|roof|area|pitch|square|sq\.?\s*ft)/i.test(context);
+    
+    if (hasRelevantContext) {
+      const value = parseFloat(match[1].replace(/,/g, ''));
+      if (!isNaN(value) && value > 0) {
+        console.log('Found valid measurement with context:', { value, context });
+        return { value, context };
+      }
+    }
+  }
+  
+  return { value: null, context: '' };
+};
+
+// Check if PDF appears to be text-based
+const isTextBasedPDF = (text: string): boolean => {
+  const hasMinimalText = text.length > 1000;
+  const containsCommonPdfText = text.includes('endobj') || text.includes('stream');
+  const containsTextualContent = /[a-zA-Z]{50,}/.test(text); // Look for substantial text
+  
+  console.log('PDF Analysis:', {
+    textLength: text.length,
+    hasCommonPdfMarkers: containsCommonPdfText,
+    hasTextualContent: containsTextualContent,
+    sample: text.substring(0, 200)
+  });
+  
+  return hasMinimalText && (containsCommonPdfText || containsTextualContent);
+};
+
 export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData['measurements']> {
   if (!openAIApiKey) {
     throw new Error('OpenAI API key not configured');
@@ -11,21 +53,15 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
   console.log('Processing PDF text sample:', text.substring(0, 500));
   
   // Check if PDF appears to be text-based
-  const hasMinimalText = text.length > 1000;
-  const containsCommonPdfText = text.includes('endobj') || text.includes('stream');
-  const containsTextualContent = /[a-zA-Z]{50,}/.test(text); // Look for substantial text
-  
-  if (!hasMinimalText || (!containsCommonPdfText && !containsTextualContent)) {
+  if (!isTextBasedPDF(text)) {
     console.log('PDF Analysis:', {
       textLength: text.length,
-      hasCommonPdfMarkers: containsCommonPdfText,
-      hasTextualContent: containsTextualContent,
       sample: text.substring(0, 200)
     });
     throw new Error('This appears to be a scanned PDF. Please ensure you are uploading a text-based PDF from EagleView.');
   }
 
-  // Expanded patterns for area measurements
+  // First try direct regex extraction with context validation
   const areaPatterns = [
     /Total(?:\s+Roof)?\s*Area[^=\n]*[:=]\s*([\d,\.]+)/i,
     /Area\s*\(?(?:All\s*Pitches)?\)?[^=\n]*[:=]\s*([\d,\.]+)/i,
@@ -39,26 +75,16 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
   let matchContext = '';
   
   for (const pattern of areaPatterns) {
-    // Search for pattern with context (100 chars before and after)
-    const contextSearch = new RegExp(`.{0,100}${pattern.source}.{0,100}`, 'i');
-    const contextMatch = text.match(contextSearch);
-    
-    if (contextMatch) {
-      const match = contextMatch[0].match(pattern);
-      if (match && match[1]) {
-        console.log('Found area match:', {
-          pattern: pattern.toString(),
-          value: match[1],
-          fullContext: contextMatch[0].trim()
-        });
-        directMatch = parseFloat(match[1].replace(/,/g, ''));
-        matchContext = contextMatch[0];
-        break;
-      }
+    const { value, context } = extractWithContext(text, pattern);
+    if (value !== null) {
+      console.log('Found direct match:', { value, context });
+      directMatch = value;
+      matchContext = context;
+      break;
     }
   }
 
-  // Enhanced prompt with examples
+  // Enhanced prompt with examples and context
   const prompt = `Extract ONLY the exact measurements found in this EagleView roof report. Look for these specific patterns:
 
   - "Total Area" or "Total Roof Area" followed by a number
@@ -74,20 +100,8 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
   Return ONLY a JSON object with numeric values. Use null ONLY if the measurement is truly not present.
   Do NOT estimate or provide default values.
 
-  Required format:
-  {
-    "total_area": number or null,
-    "predominant_pitch": "string in X/12 format" or null,
-    "ridges": { "length": number or null, "count": number or null },
-    "hips": { "length": number or null, "count": number or null },
-    "valleys": { "length": number or null, "count": number or null },
-    "rakes": { "length": number or null, "count": number or null },
-    "eaves": { "length": number or null, "count": number or null },
-    "suggested_waste_percentage": number or null
-  }
-
-  Here's the report text:
-  ${text.substring(0, 3000)}`;
+  Here's the relevant text context:
+  ${matchContext || text.substring(0, 3000)}`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -122,8 +136,8 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     const measurements = JSON.parse(content);
     console.log('Parsed measurements:', measurements);
 
-    // If we found a direct match earlier, use it
-    if (directMatch) {
+    // If we found a direct match earlier, use it if it has valid context
+    if (directMatch && matchContext) {
       console.log('Using direct regex match:', {
         value: directMatch,
         context: matchContext.trim()
