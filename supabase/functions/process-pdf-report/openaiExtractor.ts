@@ -14,7 +14,7 @@ const extractWithContext = (text: string, pattern: RegExp, contextWindow: number
     const context = text.slice(start, end).trim();
     
     // Check if context contains relevant keywords
-    const hasRelevantContext = /(?:total|roof|area|pitch|square|sq\.?\s*ft)/i.test(context);
+    const hasRelevantContext = /(?:total|roof|area|pitch|square|sq\.?\s*ft|all\s*pitches)/i.test(context);
     
     if (hasRelevantContext) {
       const value = parseFloat(match[1].replace(/,/g, ''));
@@ -30,18 +30,19 @@ const extractWithContext = (text: string, pattern: RegExp, contextWindow: number
 
 // Check if PDF appears to be text-based
 const isTextBasedPDF = (text: string): boolean => {
-  const hasMinimalText = text.length > 1000;
-  const containsCommonPdfText = text.includes('endobj') || text.includes('stream');
-  const containsTextualContent = /[a-zA-Z]{50,}/.test(text); // Look for substantial text
+  // Check for PDF object markers that indicate raw PDF data
+  const hasPdfMarkers = /%PDF|\/Type\/|\/Pages|\/MediaBox|\/Kids|\/Contents/.test(text);
+  
+  // Look for actual readable content
+  const hasReadableContent = /Total\s*(?:Roof)?\s*Area|Square\s*Feet|Sq\s*Ft/i.test(text);
   
   console.log('PDF Analysis:', {
-    textLength: text.length,
-    hasCommonPdfMarkers: containsCommonPdfText,
-    hasTextualContent: containsTextualContent,
+    hasPdfMarkers,
+    hasReadableContent,
     sample: text.substring(0, 200)
   });
   
-  return hasMinimalText && (containsCommonPdfText || containsTextualContent);
+  return !hasPdfMarkers && hasReadableContent;
 };
 
 export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData['measurements']> {
@@ -52,13 +53,9 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
   // Log a sample of the text we're processing
   console.log('Processing PDF text sample:', text.substring(0, 500));
   
-  // Check if PDF appears to be text-based
+  // Check if we're dealing with raw PDF data
   if (!isTextBasedPDF(text)) {
-    console.log('PDF Analysis:', {
-      textLength: text.length,
-      sample: text.substring(0, 200)
-    });
-    throw new Error('This appears to be a scanned PDF. Please ensure you are uploading a text-based PDF from EagleView.');
+    console.log('Warning: Text appears to contain raw PDF data rather than extracted content');
   }
 
   // First try direct regex extraction with context validation
