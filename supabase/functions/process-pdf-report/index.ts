@@ -32,8 +32,7 @@ serve(async (req) => {
 
     console.log('Received file:', file.name, 'Size:', file.size);
     const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const text = new TextDecoder().decode(uint8Array);
+    const text = new TextDecoder().decode(arrayBuffer);
     
     console.log('Starting measurement extraction');
     const { measurements, debugInfo } = extractMeasurements(text);
@@ -62,7 +61,7 @@ serve(async (req) => {
           measurements,
           requiresManualReview: true,
           debug: { 
-            extractedText: debugInfo.text_samples.total_area || '',
+            extractedText: text.substring(0, 1000),
             patterns: debugInfo.matched_patterns
           }
         }),
