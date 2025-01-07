@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -23,25 +22,26 @@ serve(async (req) => {
 
     console.log('Processing PDF file:', file.name);
     
-    // Read the file content as an array buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
+    // Read the file content as text
+    const text = await file.text();
     
-    // Convert binary data to text, skipping PDF header and binary content
-    let text = new TextDecoder().decode(uint8Array);
-    
-    // Extract text content between common PDF text markers
-    const textContent = text.match(/\((.*?)\)/g)?.map(match => 
-      match.slice(1, -1)
-        .replace(/\\(\d{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)))
-        .replace(/\\[()\\]/g, match => match.charAt(1))
-    ).join(' ') || '';
+    // Clean and extract meaningful text content
+    const cleanedText = text
+      .replace(/%PDF.*?(?=%)/gs, '') // Remove PDF header
+      .replace(/endobj.*?obj/gs, ' ') // Remove PDF object markers
+      .replace(/stream.*?endstream/gs, ' ') // Remove binary streams
+      .replace(/[^\x20-\x7E\n]/g, ' ') // Keep only printable ASCII
+      .replace(/\s+/g, ' ')
+      .trim();
 
-    console.log('Extracted text length:', textContent.length);
-    console.log('Sample of extracted text:', textContent.substring(0, 500));
+    // Look for common EagleView report markers
+    const reportContent = cleanedText.match(/Report.*?Summary|Measurement\s+Report|Total\s+Area|Roof\s+Measurements/i)?.[0] || cleanedText;
+
+    console.log('Cleaned text length:', reportContent.length);
+    console.log('Sample of cleaned text:', reportContent.substring(0, 500));
 
     // Extract measurements using OpenAI
-    const measurements = await extractWithOpenAI(textContent);
+    const measurements = await extractWithOpenAI(reportContent);
     
     console.log('Extracted measurements:', measurements);
 
