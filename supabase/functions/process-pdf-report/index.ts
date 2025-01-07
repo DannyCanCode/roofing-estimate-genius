@@ -33,11 +33,15 @@ serve(async (req) => {
 
     console.log('Starting text extraction');
     const text = await textExtractor.extractText(uint8Array);
-    console.log('Text extracted, parsing measurements');
+    console.log('Text extracted, length:', text.length);
+    
+    console.log('Parsing measurements');
     const measurements = parser.parseMeasurements(text);
+    console.log('Parsed measurements:', measurements);
 
+    console.log('Validating measurements');
     if (!validator.validate(measurements)) {
-      throw new Error('Invalid measurements extracted from PDF');
+      throw new Error('Could not extract valid measurements from the PDF. Please ensure you are uploading an EagleView report.');
     }
 
     console.log('Successfully processed PDF');
