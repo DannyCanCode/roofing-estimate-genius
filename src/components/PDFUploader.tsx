@@ -72,13 +72,15 @@ export function PDFUploader() {
       const items = getEstimateItems(data.measurements);
       const totalAmount = items.reduce((sum, item) => sum + item.total, 0);
 
-      // Create estimate in database
+      // Create estimate in database with all required fields
       const estimate = await createEstimate({
         customer_name: "Customer", // This should be input by user
         amount: totalAmount,
         status: 'pending',
         roofing_type: selectedRoofingType,
-        report_id: data.report_id
+        report_id: data.report_id,
+        address: data.measurements.address || 'Address pending', // Add address field
+        date: new Date().toISOString() // Add date field
       });
 
       // Create estimate items in database
