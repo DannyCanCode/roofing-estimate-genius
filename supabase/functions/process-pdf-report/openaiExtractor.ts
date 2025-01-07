@@ -42,7 +42,7 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
   }
 
   // If direct extraction failed, try with OpenAI
-  const prompt = `You are analyzing an EagleView roof measurement report. Extract measurements and return ONLY a JSON object with these exact fields (no explanation or markdown):
+  const prompt = `Extract these exact measurements from this EagleView roof report and return ONLY a JSON object (no explanation or markdown):
   {
     "total_area": number,
     "total_area_less_penetrations": number,
@@ -66,7 +66,7 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           { 
             role: 'system', 
@@ -100,10 +100,21 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     const aiMeasurements = JSON.parse(jsonMatch[0]);
     console.log('AI parsed measurements:', aiMeasurements);
 
+    // Validate the measurements
+    if (!aiMeasurements.total_area || aiMeasurements.total_area <= 0) {
+      throw new Error('Could not extract total area from PDF');
+    }
+
     // Combine direct measurements with AI measurements, preferring direct measurements
     return {
       ...aiMeasurements,
-      ...measurements
+      ...Object.fromEntries(
+        Object.entries(measurements).filter(([_, value]) => 
+          typeof value === 'number' ? value > 0 : 
+          typeof value === 'object' ? (value.length > 0 || value.count > 0) : 
+          value
+        )
+      )
     };
   } catch (error) {
     console.error('OpenAI extraction error:', error);

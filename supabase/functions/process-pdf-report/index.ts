@@ -32,6 +32,11 @@ serve(async (req) => {
 
     // Extract measurements using OpenAI
     const measurements = await extractWithOpenAI(cleanedText);
+    console.log('Extracted measurements:', measurements);
+
+    if (!measurements.total_area || measurements.total_area <= 0) {
+      throw new Error('Could not extract total area from PDF');
+    }
 
     return new Response(
       JSON.stringify({ measurements }),
