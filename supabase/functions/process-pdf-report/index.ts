@@ -25,6 +25,7 @@ serve(async (req) => {
     const uint8Array = new Uint8Array(arrayBuffer);
 
     const textExtractor = new TextExtractor();
+    console.log('Starting text extraction');
     const text = await textExtractor.extractText(uint8Array);
     console.log('Text extracted, length:', text.length);
     

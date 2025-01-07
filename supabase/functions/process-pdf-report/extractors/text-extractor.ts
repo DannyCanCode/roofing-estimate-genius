@@ -35,8 +35,9 @@ export class TextExtractor {
         text += pageText + '\n';
       }
 
+      console.log('Raw extracted text sample:', text.substring(0, 500));
       const cleanedText = this.cleanText(text);
-      console.log('Extracted text sample:', cleanedText.substring(0, 500));
+      console.log('Cleaned text sample:', cleanedText.substring(0, 500));
       return cleanedText;
     } catch (error) {
       console.error('Error extracting text:', error);
@@ -53,11 +54,9 @@ export class TextExtractor {
 
   private async extractPageText(page: any): Promise<string> {
     try {
-      // Get text content from the page
       const content = await page.getTextContent();
       let text = '';
       
-      // Process each text item
       for (const item of content.items) {
         if (typeof item.str === 'string') {
           text += item.str + ' ';
@@ -72,120 +71,113 @@ export class TextExtractor {
   }
 
   extractMeasurements(text: string): ExtractedMeasurements {
-    console.log('Extracting measurements from text');
+    console.log('Starting measurement extraction from text');
     const measurements: ExtractedMeasurements = {};
 
-    // Helper function to extract number from text
-    const extractNumber = (pattern: RegExp): number | undefined => {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        return parseFloat(match[1].replace(/,/g, ''));
-      }
-      return undefined;
-    };
-
-    // Extract measurements using more flexible patterns
-    const patterns = {
-      totalArea: [
-        /Total Area[^=\n]*=\s*([\d,]+)/i,
-        /Total Roof Area[^=\n]*=\s*([\d,]+)/i,
-        /Roof Area[^=\n]*:\s*([\d,]+)/i,
-        /Area[^=\n]*=\s*([\d,]+)/i
-      ],
-      pitch: [
-        /Predominant Pitch[^=\n]*=\s*(\d+)\/12/i,
-        /Primary Pitch[^=\n]*=\s*(\d+)\/12/i,
-        /Pitch[^=\n]*=\s*(\d+)\/12/i
-      ],
-      ridges: /Ridge.*?Length[^=\n]*=\s*([\d,]+).*?Count[^=\n]*=\s*(\d+)/is,
-      hips: /Hip.*?Length[^=\n]*=\s*([\d,]+).*?Count[^=\n]*=\s*(\d+)/is,
-      valleys: /Valley.*?Length[^=\n]*=\s*([\d,]+).*?Count[^=\n]*=\s*(\d+)/is,
-      rakes: /Rake.*?Length[^=\n]*=\s*([\d,]+).*?Count[^=\n]*=\s*(\d+)/is,
-      eaves: /Eave.*?Length[^=\n]*=\s*([\d,]+).*?Count[^=\n]*=\s*(\d+)/is,
-      stories: [
-        /Number of Stories[^=\n]*=\s*(\d+)/i,
-        /Stories[^=\n]*=\s*(\d+)/i
-      ],
-      waste: [
-        /Suggested Waste[^=\n]*=\s*(\d+)/i,
-        /Waste Factor[^=\n]*=\s*(\d+)/i
-      ]
-    };
+    // More flexible patterns for total area
+    const totalAreaPatterns = [
+      /Total Area[^=\n]*[:=]\s*([\d,\.]+)/i,
+      /Total Roof Area[^=\n]*[:=]\s*([\d,\.]+)/i,
+      /Roof Area[^=\n]*[:=]\s*([\d,\.]+)/i,
+      /Total Square Feet[^=\n]*[:=]\s*([\d,\.]+)/i,
+      /Total Squares[^=\n]*[:=]\s*([\d,\.]+)/i,
+      /Area[^=\n]*[:=]\s*([\d,\.]+)/i
+    ];
 
     // Try each pattern for total area
-    let totalArea: number | undefined;
-    for (const pattern of patterns.totalArea) {
-      totalArea = extractNumber(pattern);
-      if (totalArea) break;
+    let totalAreaFound = false;
+    for (const pattern of totalAreaPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const value = parseFloat(match[1].replace(/,/g, ''));
+        if (!isNaN(value) && value > 0) {
+          measurements.totalArea = value;
+          measurements.totalSquares = value / 100;
+          totalAreaFound = true;
+          console.log('Found total area:', value);
+          break;
+        }
+      }
     }
 
-    if (totalArea) {
-      measurements.totalArea = totalArea;
-      measurements.totalSquares = totalArea / 100;
-    } else {
-      console.error('Could not extract total area');
+    if (!totalAreaFound) {
+      console.error('Could not find total area in text');
+      console.log('Text content for debugging:', text);
       throw new Error('Could not extract total area from PDF');
     }
 
-    // Extract pitch
-    for (const pattern of patterns.pitch) {
+    // Extract pitch with more flexible patterns
+    const pitchPatterns = [
+      /Predominant Pitch[^=\n]*[:=]\s*(\d+)\/12/i,
+      /Primary Pitch[^=\n]*[:=]\s*(\d+)\/12/i,
+      /Pitch[^=\n]*[:=]\s*(\d+)\/12/i,
+      /(\d+)\/12\s*pitch/i
+    ];
+
+    for (const pattern of pitchPatterns) {
       const match = text.match(pattern);
       if (match && match[1]) {
         measurements.pitch = `${match[1]}/12`;
+        console.log('Found pitch:', measurements.pitch);
         break;
       }
     }
 
-    // Extract measurements with counts
-    const extractMeasurementWithCount = (pattern: RegExp): { length?: number; count?: number } => {
-      const match = text.match(pattern);
-      if (match && match[1] && match[2]) {
-        return {
-          length: parseFloat(match[1].replace(/,/g, '')),
-          count: parseInt(match[2])
-        };
-      }
-      return {};
+    // Extract measurements with counts using more flexible patterns
+    const measurementPatterns = {
+      ridges: /Ridge.*?Length[^=\n]*[:=]\s*([\d,\.]+).*?Count[^=\n]*[:=]\s*(\d+)/is,
+      hips: /Hip.*?Length[^=\n]*[:=]\s*([\d,\.]+).*?Count[^=\n]*[:=]\s*(\d+)/is,
+      valleys: /Valley.*?Length[^=\n]*[:=]\s*([\d,\.]+).*?Count[^=\n]*[:=]\s*(\d+)/is,
+      rakes: /Rake.*?Length[^=\n]*[:=]\s*([\d,\.]+).*?Count[^=\n]*[:=]\s*(\d+)/is,
+      eaves: /Eave.*?Length[^=\n]*[:=]\s*([\d,\.]+).*?Count[^=\n]*[:=]\s*(\d+)/is
     };
 
-    // Extract ridge measurements
-    const ridges = extractMeasurementWithCount(patterns.ridges);
-    measurements.ridgesLength = ridges.length;
-    measurements.ridgesCount = ridges.count;
-
-    // Extract hip measurements
-    const hips = extractMeasurementWithCount(patterns.hips);
-    measurements.hipsLength = hips.length;
-    measurements.hipsCount = hips.count;
-
-    // Extract valley measurements
-    const valleys = extractMeasurementWithCount(patterns.valleys);
-    measurements.valleysLength = valleys.length;
-    measurements.valleysCount = valleys.count;
-
-    // Extract rake measurements
-    const rakes = extractMeasurementWithCount(patterns.rakes);
-    measurements.rakesLength = rakes.length;
-    measurements.rakesCount = rakes.count;
-
-    // Extract eave measurements
-    const eaves = extractMeasurementWithCount(patterns.eaves);
-    measurements.eavesLength = eaves.length;
-    measurements.eavesCount = eaves.count;
+    for (const [key, pattern] of Object.entries(measurementPatterns)) {
+      const match = text.match(pattern);
+      if (match && match[1] && match[2]) {
+        const length = parseFloat(match[1].replace(/,/g, ''));
+        const count = parseInt(match[2]);
+        if (!isNaN(length) && !isNaN(count)) {
+          measurements[`${key}Length`] = length;
+          measurements[`${key}Count`] = count;
+          console.log(`Found ${key}:`, { length, count });
+        }
+      }
+    }
 
     // Extract number of stories
-    for (const pattern of patterns.stories) {
-      measurements.numberOfStories = extractNumber(pattern);
-      if (measurements.numberOfStories) break;
+    const storiesPatterns = [
+      /Number of Stories[^=\n]*[:=]\s*(\d+)/i,
+      /Stories[^=\n]*[:=]\s*(\d+)/i,
+      /(\d+)\s*stories?/i
+    ];
+
+    for (const pattern of storiesPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        measurements.numberOfStories = parseInt(match[1]);
+        console.log('Found number of stories:', measurements.numberOfStories);
+        break;
+      }
     }
 
-    // Extract suggested waste
-    for (const pattern of patterns.waste) {
-      measurements.suggestedWaste = extractNumber(pattern);
-      if (measurements.suggestedWaste) break;
+    // Extract suggested waste percentage
+    const wastePatterns = [
+      /Suggested Waste[^=\n]*[:=]\s*(\d+)/i,
+      /Waste Factor[^=\n]*[:=]\s*(\d+)/i,
+      /Waste[^=\n]*[:=]\s*(\d+)/i
+    ];
+
+    for (const pattern of wastePatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        measurements.suggestedWaste = parseInt(match[1]);
+        console.log('Found suggested waste:', measurements.suggestedWaste);
+        break;
+      }
     }
 
-    console.log('Extracted measurements:', measurements);
+    console.log('Final extracted measurements:', measurements);
     return measurements;
   }
 }
