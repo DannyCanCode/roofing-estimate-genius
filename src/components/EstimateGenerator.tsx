@@ -21,6 +21,7 @@ const EstimateGenerator = () => {
   const processPdfMutation = usePdfProcessing({
     onSuccess: (measurements, rawData) => {
       console.log('PDF processing succeeded with measurements:', measurements);
+      console.log('Raw PDF data:', rawData);
       setMeasurements(measurements);
       setRawPdfData(rawData);
     }
@@ -49,13 +50,6 @@ const EstimateGenerator = () => {
     }
   }, [measurements, selectedCategory, profitMargin]);
 
-  const handleExportPdf = () => {
-    toast({
-      title: "Export Started",
-      description: "Your estimate PDF is being generated...",
-    });
-  };
-
   return (
     <div className="grid gap-8 lg:grid-cols-3">
       <div className="lg:col-span-2 space-y-6">
@@ -80,9 +74,16 @@ const EstimateGenerator = () => {
             <EstimatePreview
               items={estimateItems}
               totalPrice={totalPrice}
-              onExportPdf={handleExportPdf}
+              onExportPdf={() => {
+                toast({
+                  title: "Export Started",
+                  description: "Your estimate PDF is being generated...",
+                });
+              }}
             />
-            {rawPdfData && <PdfExtractionDetails data={rawPdfData} />}
+            {rawPdfData && (
+              <PdfExtractionDetails data={rawPdfData} />
+            )}
           </>
         )}
       </div>
