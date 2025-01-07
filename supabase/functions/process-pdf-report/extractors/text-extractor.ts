@@ -17,8 +17,16 @@ export class TextExtractor {
         const page = pages[i];
         const pageText = await this.extractPageText(page);
         console.log(`Page ${i + 1} text length:`, pageText.length);
-        console.log(`Page ${i + 1} sample:`, pageText.substring(0, 200));
+        if (pageText.length > 0) {
+          console.log(`Page ${i + 1} sample:`, pageText.substring(0, 200));
+        } else {
+          console.log(`No text extracted from page ${i + 1}`);
+        }
         text += pageText + '\n';
+      }
+
+      if (!text || text.trim().length === 0) {
+        throw new Error('No text content could be extracted from PDF');
       }
 
       console.log('Raw extracted text:', text);
@@ -34,12 +42,20 @@ export class TextExtractor {
 
   private async extractPageText(page: any): Promise<string> {
     try {
-      // First try to get text content directly
-      const textContent = await page.getTextContent();
-      const text = textContent.items
-        .map((item: any) => typeof item.str === 'string' ? item.str : '')
-        .join(' ')
-        .trim();
+      // Try to get text content using pdf-lib's built-in methods
+      let text = '';
+      
+      // Get all text operations from the page
+      const { default: PDFParser } = await import('https://esm.sh/pdf2json@2.0.2');
+      const pdfParser = new PDFParser();
+      
+      const pageContent = await page.getTextContent();
+      if (pageContent && pageContent.items) {
+        text = pageContent.items
+          .map((item: any) => typeof item.str === 'string' ? item.str : '')
+          .join(' ')
+          .trim();
+      }
 
       console.log('Extracted text length:', text.length);
       return text;
@@ -144,6 +160,10 @@ export class TextExtractor {
         console.log('Found pitch:', measurements.pitch);
         break;
       }
+    }
+
+    if (!totalAreaFound) {
+      throw new Error('Could not extract total area from PDF');
     }
 
     console.log('Final extracted measurements:', measurements);
