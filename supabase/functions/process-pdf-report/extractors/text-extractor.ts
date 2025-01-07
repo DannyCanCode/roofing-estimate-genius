@@ -72,6 +72,7 @@ export class TextExtractor {
 
   extractMeasurements(text: string): ExtractedMeasurements {
     console.log('Starting measurement extraction from text');
+    
     const measurements: ExtractedMeasurements = {};
 
     // More flexible patterns for total area
