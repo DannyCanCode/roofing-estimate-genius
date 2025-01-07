@@ -72,7 +72,7 @@ export class TextExtractor {
 
   extractMeasurements(text: string): ExtractedMeasurements {
     console.log('Starting measurement extraction from text');
-    console.log('Text content:', text); // Add this line for debugging
+    console.log('Text content:', text);
     
     const measurements: ExtractedMeasurements = {};
 
@@ -84,7 +84,10 @@ export class TextExtractor {
       /Total Square Feet[^=\n]*[:=]\s*([\d,\.]+)/i,
       /Total Squares[^=\n]*[:=]\s*([\d,\.]+)/i,
       /Area[^=\n]*[:=]\s*([\d,\.]+)/i,
-      /(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|square\s*feet)/i
+      /(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|square\s*feet)/i,
+      /Total Area \(All Pitches\)[^=\n]*[:=]\s*([\d,\.]+)/i,
+      /Total Area \(All Pitches\)\s*([\d,\.]+)/i,
+      /Total SF[^=\n]*[:=]\s*([\d,\.]+)/i
     ];
 
     // Try each pattern for total area
@@ -103,10 +106,9 @@ export class TextExtractor {
       }
     }
 
-    // Don't throw error if total area is not found, let the edge function handle it
     if (!totalAreaFound) {
       console.log('Could not find total area in text');
-      return measurements;
+      throw new Error('Could not extract total area from PDF');
     }
 
     // Extract pitch with more flexible patterns

@@ -35,27 +35,6 @@ serve(async (req) => {
       const measurements = textExtractor.extractMeasurements(text);
       console.log('Parsed measurements:', measurements);
 
-      // If no measurements were extracted, use mock data for testing
-      if (!measurements.totalArea) {
-        console.log('No measurements found, using mock data');
-        const mockMeasurements = {
-          measurements: {
-            total_area: 2500,
-            predominant_pitch: "6/12",
-            suggested_waste_percentage: 15,
-            number_of_stories: 2,
-            ridges: { length: 45, count: 2 },
-            hips: { length: 30, count: 4 },
-            valleys: { length: 25, count: 2 },
-            rakes: { length: 60, count: 4 },
-            eaves: { length: 80, count: 4 }
-          }
-        };
-        return new Response(JSON.stringify(mockMeasurements), { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
       // Format measurements to match frontend expectations
       const formattedMeasurements = {
         measurements: {
@@ -95,23 +74,7 @@ serve(async (req) => {
 
     } catch (error) {
       console.error('Error extracting text or measurements:', error);
-      // Return mock data as fallback
-      const mockMeasurements = {
-        measurements: {
-          total_area: 2500,
-          predominant_pitch: "6/12",
-          suggested_waste_percentage: 15,
-          number_of_stories: 2,
-          ridges: { length: 45, count: 2 },
-          hips: { length: 30, count: 4 },
-          valleys: { length: 25, count: 2 },
-          rakes: { length: 60, count: 4 },
-          eaves: { length: 80, count: 4 }
-        }
-      };
-      return new Response(JSON.stringify(mockMeasurements), { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      throw error;
     }
 
   } catch (error) {
@@ -123,7 +86,7 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 // Changed from 500 to 200 to prevent client-side errors
+        status: 500
       }
     );
   }
