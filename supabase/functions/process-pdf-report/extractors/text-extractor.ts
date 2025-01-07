@@ -1,5 +1,5 @@
 import { PDFDocument } from 'https://cdn.skypack.dev/pdf-lib';
-import { cleanText, logTextChunks, extractNumber } from '../utils/text-processing.ts';
+import { cleanText, logTextChunks } from '../utils/text-processing.ts';
 import { totalAreaPatterns, generalAreaPattern, pitchPatterns } from '../utils/measurement-patterns.ts';
 import type { ExtractedMeasurements } from '../types/measurements.ts';
 
@@ -19,13 +19,9 @@ export class TextExtractor {
         text += pageText + '\n';
       }
 
-      console.log('Raw extracted text sample (first 1000 chars):', text.substring(0, 1000));
+      console.log('Raw extracted text:', text);
       const cleanedText = cleanText(text);
-      console.log('Cleaned text sample (first 1000 chars):', cleanedText.substring(0, 1000));
-      
-      // Log entire text in chunks for debugging
-      console.log('Full text content in chunks:');
-      logTextChunks(cleanedText);
+      console.log('Cleaned text:', cleanedText);
       
       return cleanedText;
     } catch (error) {
@@ -37,18 +33,10 @@ export class TextExtractor {
   private async extractPageText(page: any): Promise<string> {
     try {
       const content = await page.getTextContent();
-      const text = content.items
+      return content.items
         .map((item: any) => typeof item.str === 'string' ? item.str : '')
         .join(' ')
         .trim();
-      
-      if (!text) {
-        console.warn('No text content found on page');
-        return '';
-      }
-      
-      console.log('Extracted page text sample:', text.substring(0, 200));
-      return text;
     } catch (error) {
       console.error('Error extracting page text:', error);
       return '';
@@ -61,7 +49,7 @@ export class TextExtractor {
     const measurements: ExtractedMeasurements = {
       totalArea: 0,
       totalSquares: 0,
-      pitch: "4/12" // Default pitch if none found
+      pitch: "4/12" // Default pitch
     };
 
     // Try each pattern for total area
@@ -70,25 +58,31 @@ export class TextExtractor {
     // First try specific patterns
     for (const pattern of totalAreaPatterns) {
       console.log('Trying pattern:', pattern);
-      const value = extractNumber(text, pattern);
-      if (value !== null && value > 0) {
-        measurements.totalArea = value;
-        measurements.totalSquares = value / 100;
-        totalAreaFound = true;
-        console.log('Found total area:', value, 'using pattern:', pattern);
-        break;
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const value = parseFloat(match[1].replace(/,/g, ''));
+        if (!isNaN(value) && value > 0) {
+          measurements.totalArea = value;
+          measurements.totalSquares = value / 100;
+          totalAreaFound = true;
+          console.log('Found total area:', value, 'using pattern:', pattern);
+          break;
+        }
       }
     }
 
     // If no specific pattern matched, try general area pattern
     if (!totalAreaFound) {
       console.log('Trying general area pattern:', generalAreaPattern);
-      const value = extractNumber(text, generalAreaPattern);
-      if (value !== null && value > 0) {
-        measurements.totalArea = value;
-        measurements.totalSquares = value / 100;
-        totalAreaFound = true;
-        console.log('Found total area using general pattern:', value);
+      const match = text.match(generalAreaPattern);
+      if (match && match[1]) {
+        const value = parseFloat(match[1].replace(/,/g, ''));
+        if (!isNaN(value) && value > 0) {
+          measurements.totalArea = value;
+          measurements.totalSquares = value / 100;
+          totalAreaFound = true;
+          console.log('Found total area using general pattern:', value);
+        }
       }
     }
 
@@ -102,7 +96,6 @@ export class TextExtractor {
       }
     }
 
-    // Return measurements even if area not found
     console.log('Final extracted measurements:', measurements);
     return measurements;
   }

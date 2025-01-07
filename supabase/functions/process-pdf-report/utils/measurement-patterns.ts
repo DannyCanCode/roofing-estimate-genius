@@ -8,7 +8,9 @@ export const totalAreaPatterns = [
   /TOTAL\s*([\d,\.]+)\s*(?:sq\.?\s*ft\.?|square\s*feet|SF)/i,
   /Grand Total:\s*([\d,\.]+)\s*(?:sq\.?\s*ft\.?|square\s*feet|SF)/i,
   /Total All Pitches[^=\n]*[:=]\s*([\d,\.]+)/i,
-  /Total Area \(All Pitches\)[^=\n]*[:=]\s*([\d,\.]+)/i
+  /Total Area \(All Pitches\)[^=\n]*[:=]\s*([\d,\.]+)/i,
+  /TOTAL\s*([\d,\.]+)/i,
+  /(\d{2,}(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|square\s*feet|SF)/i
 ];
 
 export const generalAreaPattern = /(\d{2,}(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|square\s*feet|SF)/i;
