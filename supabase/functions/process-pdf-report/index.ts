@@ -61,10 +61,6 @@ serve(async (req) => {
       }
     };
 
-    if (!formattedMeasurements.measurements.total_area) {
-      throw new Error('Could not extract total area from PDF');
-    }
-
     return new Response(
       JSON.stringify(formattedMeasurements),
       { 
