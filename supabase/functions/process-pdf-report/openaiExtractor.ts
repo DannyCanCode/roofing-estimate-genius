@@ -7,19 +7,19 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     throw new Error('OpenAI API key not configured');
   }
 
-  const prompt = `Extract ONLY these measurements from the provided PDF text. Return ONLY a JSON object with these exact fields (no explanation):
-  - Total roof area (in square feet)
-  - Total area less penetrations (in square feet)
-  - Predominant roof pitch (in X/12 format)
-  - Ridges length and count
-  - Hips length and count
-  - Valleys length and count
-  - Rakes length and count
-  - Eaves length and count
-  - Suggested waste percentage (from the waste calculation table, use the suggested percentage)
+  const prompt = `Extract these measurements from the provided PDF text. Return ONLY a JSON object with these fields (no explanation):
+  - total_area (number in square feet)
+  - total_area_less_penetrations (number in square feet)
+  - predominant_pitch (string in X/12 format)
+  - ridges: { length: number, count: number }
+  - hips: { length: number, count: number }
+  - valleys: { length: number, count: number }
+  - rakes: { length: number, count: number }
+  - eaves: { length: number, count: number }
+  - suggested_waste_percentage (number)
 
-  Here's the text to analyze (showing first 2000 chars):
-  ${text.substring(0, 2000)}`;
+  Here's the text to analyze (showing first 4000 chars):
+  ${text.substring(0, 4000)}`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -29,11 +29,11 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           { 
             role: 'system', 
-            content: 'You are a measurement extractor. Return only the exact JSON structure requested with accurate measurements from the PDF. Format lengths as numbers and counts as integers.' 
+            content: 'You are a measurement extractor for roofing reports. Extract measurements precisely and return them in the exact JSON format requested. If you cannot find a measurement, use 0 for numbers and "0/12" for pitch.' 
           },
           { role: 'user', content: prompt }
         ],
@@ -58,17 +58,11 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     const measurements = JSON.parse(content);
     console.log('Parsed measurements:', measurements);
 
-    return {
-      total_area: measurements.total_area,
-      total_area_less_penetrations: measurements.total_area_less_penetrations,
-      predominant_pitch: measurements.predominant_pitch,
-      ridges: measurements.ridges,
-      hips: measurements.hips,
-      valleys: measurements.valleys,
-      rakes: measurements.rakes,
-      eaves: measurements.eaves,
-      suggested_waste_percentage: measurements.suggested_waste_percentage
-    };
+    if (!measurements.total_area) {
+      throw new Error('Could not extract total area from PDF');
+    }
+
+    return measurements;
   } catch (error) {
     console.error('OpenAI extraction error:', error);
     throw error;

@@ -23,22 +23,25 @@ serve(async (req) => {
 
     console.log('Processing PDF file:', file.name);
     
-    // Read the file as text
-    const pdfText = await file.text();
+    // Read the file content as an array buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
     
-    // Clean up the text by removing PDF binary data markers and unnecessary whitespace
-    const cleanedText = pdfText
-      .replace(/%PDF-.*?(?=\n)/g, '')
-      .replace(/%%EOF.*$/g, '')
-      .replace(/\r\n/g, '\n')
-      .replace(/\s+/g, ' ')
-      .trim();
+    // Convert binary data to text, skipping PDF header and binary content
+    let text = new TextDecoder().decode(uint8Array);
+    
+    // Extract text content between common PDF text markers
+    const textContent = text.match(/\((.*?)\)/g)?.map(match => 
+      match.slice(1, -1)
+        .replace(/\\(\d{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)))
+        .replace(/\\[()\\]/g, match => match.charAt(1))
+    ).join(' ') || '';
 
-    console.log('Cleaned text length:', cleanedText.length);
-    console.log('Sample of cleaned text:', cleanedText.substring(0, 500));
+    console.log('Extracted text length:', textContent.length);
+    console.log('Sample of extracted text:', textContent.substring(0, 500));
 
     // Extract measurements using OpenAI
-    const measurements = await extractWithOpenAI(cleanedText);
+    const measurements = await extractWithOpenAI(textContent);
     
     console.log('Extracted measurements:', measurements);
 
