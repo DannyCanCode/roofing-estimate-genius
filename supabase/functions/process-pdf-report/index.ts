@@ -29,8 +29,7 @@ serve(async (req) => {
     
     try {
       const text = await textExtractor.extractText(uint8Array);
-      console.log('Text extracted, length:', text.length);
-      console.log('Sample of extracted text:', text.substring(0, 500));
+      console.log('Text extracted successfully');
       
       const measurements = textExtractor.extractMeasurements(text);
       console.log('Parsed measurements:', measurements);

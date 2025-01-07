@@ -35,9 +35,9 @@ export class TextExtractor {
         text += pageText + '\n';
       }
 
-      console.log('Raw extracted text sample:', text.substring(0, 500));
+      console.log('Raw extracted text sample (first 1000 chars):', text.substring(0, 1000));
       const cleanedText = this.cleanText(text);
-      console.log('Cleaned text sample:', cleanedText.substring(0, 500));
+      console.log('Cleaned text sample (first 1000 chars):', cleanedText.substring(0, 1000));
       return cleanedText;
     } catch (error) {
       console.error('Error extracting text:', error);
@@ -72,7 +72,12 @@ export class TextExtractor {
 
   extractMeasurements(text: string): ExtractedMeasurements {
     console.log('Starting measurement extraction from text');
-    console.log('Text content:', text);
+    
+    // Log text in chunks for better debugging
+    const chunks = text.match(/.{1,500}/g) || [];
+    chunks.forEach((chunk, index) => {
+      console.log(`Text chunk ${index + 1}:`, chunk);
+    });
     
     const measurements: ExtractedMeasurements = {};
 
@@ -87,7 +92,10 @@ export class TextExtractor {
       /(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|square\s*feet)/i,
       /Total Area \(All Pitches\)[^=\n]*[:=]\s*([\d,\.]+)/i,
       /Total Area \(All Pitches\)\s*([\d,\.]+)/i,
-      /Total SF[^=\n]*[:=]\s*([\d,\.]+)/i
+      /Total SF[^=\n]*[:=]\s*([\d,\.]+)/i,
+      /Total Square Footage[^=\n]*[:=]\s*([\d,\.]+)/i,
+      /Total Area\s*=?\s*([\d,\.]+)/i,
+      /Total Roof SF[^=\n]*[:=]\s*([\d,\.]+)/i
     ];
 
     // Try each pattern for total area
@@ -100,8 +108,23 @@ export class TextExtractor {
           measurements.totalArea = value;
           measurements.totalSquares = value / 100;
           totalAreaFound = true;
-          console.log('Found total area:', value);
+          console.log('Found total area:', value, 'using pattern:', pattern);
           break;
+        }
+      }
+    }
+
+    if (!totalAreaFound) {
+      // Look for any number followed by sq ft or square feet
+      const generalAreaPattern = /(\d{2,}(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|square\s*feet|SF)/i;
+      const match = text.match(generalAreaPattern);
+      if (match && match[1]) {
+        const value = parseFloat(match[1].replace(/,/g, ''));
+        if (!isNaN(value) && value > 0) {
+          measurements.totalArea = value;
+          measurements.totalSquares = value / 100;
+          totalAreaFound = true;
+          console.log('Found total area using general pattern:', value);
         }
       }
     }
