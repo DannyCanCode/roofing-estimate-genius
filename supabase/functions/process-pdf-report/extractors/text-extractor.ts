@@ -55,25 +55,13 @@ export class TextExtractor {
   }
 
   private async extractPageText(page: any): Promise<string> {
-    // For now, return mock text that matches the expected format
-    // This will be replaced with actual PDF text extraction
-    return `
-      Total Area (All Pitches) = 2500 sq ft
-      Total Squares = 25
-      Predominant Pitch = 6/12
-      Ridge Length = 45 ft
-      Ridge Count = 3
-      Hip Length = 30 ft
-      Hip Count = 2
-      Valley Length = 25 ft
-      Valley Count = 2
-      Rake Length = 60 ft
-      Rake Count = 4
-      Eave Length = 80 ft
-      Eave Count = 4
-      Number of Stories = 2
-      Suggested Waste Factor = 15
-    `;
+    try {
+      const text = await page.getTextContent();
+      return text.items.map((item: any) => item.str).join(' ');
+    } catch (error) {
+      console.error('Error extracting page text:', error);
+      return '';
+    }
   }
 
   extractMeasurements(text: string): ExtractedMeasurements {
@@ -89,7 +77,7 @@ export class TextExtractor {
       return undefined;
     };
 
-    // Extract total area and convert to squares
+    // Extract total area
     const totalArea = extractNumber(/Total Area[^=\n]*=\s*([\d,]+)/i);
     if (totalArea) {
       measurements.totalArea = totalArea;
@@ -122,8 +110,10 @@ export class TextExtractor {
     measurements.eavesLength = extractNumber(/Eave Length[^=\n]*=\s*([\d,]+)/i);
     measurements.eavesCount = extractNumber(/Eave Count[^=\n]*=\s*(\d+)/i) || 1;
 
-    // Extract additional measurements
+    // Extract number of stories
     measurements.numberOfStories = extractNumber(/Number of Stories[^=\n]*=\s*(\d+)/i);
+
+    // Extract suggested waste
     measurements.suggestedWaste = extractNumber(/Suggested Waste[^=\n]*=\s*(\d+)/i);
 
     console.log('Extracted measurements:', measurements);

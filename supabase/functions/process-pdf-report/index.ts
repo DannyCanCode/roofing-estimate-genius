@@ -37,8 +37,7 @@ serve(async (req) => {
         total_area: measurements.totalArea || 0,
         predominant_pitch: measurements.pitch || "4/12",
         suggested_waste_percentage: measurements.suggestedWaste || 15,
-        number_of_stories: measurements.numberOfStories || 1, // Added this line
-        // Include additional measurements
+        number_of_stories: measurements.numberOfStories || 1,
         ridges: {
           length: measurements.ridgesLength || 0,
           count: measurements.ridgesCount || 0
