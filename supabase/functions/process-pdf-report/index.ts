@@ -36,7 +36,7 @@ serve(async (req) => {
     
     console.log('Starting measurement extraction');
     const { measurements, debugInfo } = extractMeasurements(text);
-    console.log('Extracted measurements:', measurements);
+    console.log('Standard extraction result:', measurements);
 
     // If standard extraction fails, try OpenAI
     if (!measurements.total_area || measurements.total_area <= 0) {

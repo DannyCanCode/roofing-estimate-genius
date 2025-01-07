@@ -9,14 +9,18 @@ export async function extractWithOpenAI(text: string) {
     throw new Error('OpenAI API key not configured');
   }
 
-  console.log('Starting OpenAI extraction');
+  console.log('Starting OpenAI extraction with text length:', text.length);
 
   // Clean up the text by removing PDF artifacts
   const cleanText = text
     .replace(/%PDF-.*?endobj/gs, '')
     .replace(/<<\/.*?>>/g, '')
     .replace(/endstream/g, '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\s+/g, ' ')
     .trim();
+
+  console.log('Cleaned text length:', cleanText.length);
 
   const prompt = `Extract roofing measurements from this text. Return ONLY a JSON object with these fields:
   - total_area (number): The total roof area in square feet
@@ -32,7 +36,7 @@ export async function extractWithOpenAI(text: string) {
   Here's the text:
   ${cleanText.substring(0, 4000)}
 
-  Return ONLY the JSON object, no other text. If you can't find a value, use null. DO NOT use markdown formatting or code blocks in your response.`;
+  Return ONLY the JSON object, no markdown formatting, no code blocks, no additional text. If you can't find a value, use null.`;
 
   try {
     console.log('Sending request to OpenAI');
@@ -47,11 +51,11 @@ export async function extractWithOpenAI(text: string) {
         messages: [
           { 
             role: 'system', 
-            content: 'You are a helpful assistant that extracts roofing measurements from PDF text. Return only a JSON object without any markdown formatting.' 
+            content: 'You are a helpful assistant that extracts roofing measurements from PDF text. Return only a raw JSON object without any formatting or explanation.' 
           },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.3, // Lower temperature for more consistent output
+        temperature: 0.1, // Very low temperature for consistent output
       }),
     });
 
@@ -69,20 +73,24 @@ export async function extractWithOpenAI(text: string) {
     }
 
     const extractedText = data.choices[0].message.content;
-    console.log('Extracted text:', extractedText);
+    console.log('Raw extracted text:', extractedText);
 
     try {
-      // Remove any potential markdown formatting
+      // Clean the response of any potential formatting
       const cleanJson = extractedText
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .replace(/^\s*{\s*/, '{')
+        .replace(/\s*}\s*$/, '}')
         .trim();
       
       console.log('Cleaned JSON:', cleanJson);
+      
       const measurements = JSON.parse(cleanJson);
       
       // Validate the parsed measurements
       if (typeof measurements.total_area !== 'number' && measurements.total_area !== null) {
+        console.error('Invalid total_area format:', measurements.total_area);
         throw new Error('Invalid total_area format');
       }
 
@@ -94,7 +102,7 @@ export async function extractWithOpenAI(text: string) {
     } catch (error) {
       console.error('Error parsing OpenAI response:', error);
       console.error('Response content:', extractedText);
-      throw new Error('Failed to parse OpenAI response');
+      throw new Error(`Failed to parse OpenAI response: ${error.message}`);
     }
   } catch (error) {
     console.error('OpenAI extraction error:', error);
