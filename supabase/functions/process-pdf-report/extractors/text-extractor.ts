@@ -30,43 +30,57 @@ export class TextExtractor {
     try {
       console.log('Loading PDF document');
       const pdfDoc = await PDFDocument.load(pdfBytes);
-      console.log('PDF loaded successfully');
+      const pages = pdfDoc.getPages();
+      console.log(`PDF loaded successfully with ${pages.length} pages`);
       
-      // For testing, return mock text that matches the expected format
-      return `
-        Total Area = 2500 sq ft
-        Total Squares = 25
-        Predominant Pitch = 6/12
-        Ridges = 45 ft
-        Ridges Count = 3
-        Hips = 30 ft
-        Hips Count = 2
-        Valleys = 25 ft
-        Valleys Count = 2
-        Rakes = 60 ft
-        Rakes Count = 4
-        Eaves = 80 ft
-        Eaves Count = 4
-        Drip Edge = 140 ft
-        Flashing = 20 ft
-        Step Flashing = 15 ft
-        Total Penetrations = 5
-        Waste Factor Area = 375
-        Suggested Waste Factor = 15
-        Flat Area = 0
-        Number of Stories = 2
-      `;
+      let text = '';
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        const pageText = await this.extractPageText(page);
+        text += pageText + '\n';
+      }
+      
+      return this.cleanText(text);
     } catch (error) {
       console.error('Error extracting text:', error);
       throw new Error(`Failed to extract text from PDF: ${error.message}`);
     }
   }
 
+  private cleanText(text: string): string {
+    return text
+      .replace(/\r\n/g, '\n')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private async extractPageText(page: any): Promise<string> {
+    // For now, return mock text that matches the expected format
+    // This will be replaced with actual PDF text extraction
+    return `
+      Total Area (All Pitches) = 2500 sq ft
+      Total Squares = 25
+      Predominant Pitch = 6/12
+      Ridge Length = 45 ft
+      Ridge Count = 3
+      Hip Length = 30 ft
+      Hip Count = 2
+      Valley Length = 25 ft
+      Valley Count = 2
+      Rake Length = 60 ft
+      Rake Count = 4
+      Eave Length = 80 ft
+      Eave Count = 4
+      Number of Stories = 2
+      Suggested Waste Factor = 15
+    `;
+  }
+
   extractMeasurements(text: string): ExtractedMeasurements {
     console.log('Extracting measurements from text');
     const measurements: ExtractedMeasurements = {};
 
-    // Helper function to extract number from regex match
+    // Helper function to extract number from text
     const extractNumber = (pattern: RegExp): number | undefined => {
       const match = text.match(pattern);
       if (match && match[1]) {
@@ -75,33 +89,42 @@ export class TextExtractor {
       return undefined;
     };
 
-    // Extract measurements using patterns
-    measurements.totalArea = extractNumber(measurementPatterns.totalRoofArea);
-    measurements.totalSquares = extractNumber(measurementPatterns.totalRoofSquares);
-    
-    const pitchMatch = text.match(measurementPatterns.predominantPitch);
+    // Extract total area and convert to squares
+    const totalArea = extractNumber(/Total Area[^=\n]*=\s*([\d,]+)/i);
+    if (totalArea) {
+      measurements.totalArea = totalArea;
+      measurements.totalSquares = totalArea / 100;
+    }
+
+    // Extract pitch
+    const pitchMatch = text.match(/Predominant Pitch[^=\n]*=\s*(\d+)\/12/i);
     if (pitchMatch && pitchMatch[1]) {
       measurements.pitch = `${pitchMatch[1]}/12`;
     }
 
-    measurements.ridgesLength = extractNumber(measurementPatterns.ridgesLength);
-    measurements.ridgesCount = extractNumber(measurementPatterns.ridgesCount);
-    measurements.hipsLength = extractNumber(measurementPatterns.hipsLength);
-    measurements.hipsCount = extractNumber(measurementPatterns.hipsCount);
-    measurements.valleysLength = extractNumber(measurementPatterns.valleysLength);
-    measurements.valleysCount = extractNumber(measurementPatterns.valleysCount);
-    measurements.rakesLength = extractNumber(measurementPatterns.rakesLength);
-    measurements.rakesCount = extractNumber(measurementPatterns.rakesCount);
-    measurements.eavesLength = extractNumber(measurementPatterns.eavesLength);
-    measurements.eavesCount = extractNumber(measurementPatterns.eavesCount);
-    measurements.dripEdgeLength = extractNumber(measurementPatterns.dripEdgeLength);
-    measurements.flashingLength = extractNumber(measurementPatterns.flashingLength);
-    measurements.stepFlashingLength = extractNumber(measurementPatterns.stepFlashingLength);
-    measurements.totalPenetrationsArea = extractNumber(measurementPatterns.totalPenetrationsArea);
-    measurements.wasteFactorArea = extractNumber(measurementPatterns.wasteFactorArea);
-    measurements.suggestedWaste = extractNumber(measurementPatterns.suggestedWasteFactor);
-    measurements.flatArea = extractNumber(measurementPatterns.flatArea);
-    measurements.numberOfStories = extractNumber(measurementPatterns.numberOfStories);
+    // Extract ridge measurements
+    measurements.ridgesLength = extractNumber(/Ridge Length[^=\n]*=\s*([\d,]+)/i);
+    measurements.ridgesCount = extractNumber(/Ridge Count[^=\n]*=\s*(\d+)/i) || 1;
+
+    // Extract hip measurements
+    measurements.hipsLength = extractNumber(/Hip Length[^=\n]*=\s*([\d,]+)/i);
+    measurements.hipsCount = extractNumber(/Hip Count[^=\n]*=\s*(\d+)/i) || 1;
+
+    // Extract valley measurements
+    measurements.valleysLength = extractNumber(/Valley Length[^=\n]*=\s*([\d,]+)/i);
+    measurements.valleysCount = extractNumber(/Valley Count[^=\n]*=\s*(\d+)/i) || 1;
+
+    // Extract rake measurements
+    measurements.rakesLength = extractNumber(/Rake Length[^=\n]*=\s*([\d,]+)/i);
+    measurements.rakesCount = extractNumber(/Rake Count[^=\n]*=\s*(\d+)/i) || 1;
+
+    // Extract eave measurements
+    measurements.eavesLength = extractNumber(/Eave Length[^=\n]*=\s*([\d,]+)/i);
+    measurements.eavesCount = extractNumber(/Eave Count[^=\n]*=\s*(\d+)/i) || 1;
+
+    // Extract additional measurements
+    measurements.numberOfStories = extractNumber(/Number of Stories[^=\n]*=\s*(\d+)/i);
+    measurements.suggestedWaste = extractNumber(/Suggested Waste[^=\n]*=\s*(\d+)/i);
 
     console.log('Extracted measurements:', measurements);
     return measurements;
