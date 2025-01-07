@@ -7,16 +7,18 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     throw new Error('OpenAI API key not configured');
   }
 
-  const prompt = `You are analyzing an EagleView roof measurement report. Extract these measurements and return them in a JSON format:
-  - total_area (number in square feet)
-  - total_area_less_penetrations (number in square feet)
-  - predominant_pitch (string in X/12 format)
-  - ridges: { length: number, count: number }
-  - hips: { length: number, count: number }
-  - valleys: { length: number, count: number }
-  - rakes: { length: number, count: number }
-  - eaves: { length: number, count: number }
-  - suggested_waste_percentage (number)
+  const prompt = `You are analyzing an EagleView roof measurement report. Extract measurements and return ONLY a JSON object with these exact fields (no explanation or markdown):
+  {
+    "total_area": number,
+    "total_area_less_penetrations": number,
+    "predominant_pitch": "string in X/12 format",
+    "ridges": { "length": number, "count": number },
+    "hips": { "length": number, "count": number },
+    "valleys": { "length": number, "count": number },
+    "rakes": { "length": number, "count": number },
+    "eaves": { "length": number, "count": number },
+    "suggested_waste_percentage": number
+  }
 
   Look for patterns like:
   - "Total Area: X sq ft" or "Total Roof Area: X"
@@ -35,11 +37,11 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o',
         messages: [
           { 
             role: 'system', 
-            content: 'You are a specialized measurement extractor for EagleView roof reports. Extract measurements precisely and return them in the exact JSON format requested. If you cannot find a measurement, use 0 for numbers and "0/12" for pitch.' 
+            content: 'You are a specialized measurement extractor for EagleView roof reports. Return ONLY the JSON object with measurements, no explanation or markdown.' 
           },
           { role: 'user', content: prompt }
         ],
@@ -59,9 +61,14 @@ export async function extractWithOpenAI(text: string): Promise<ProcessedPdfData[
     }
 
     let content = data.choices[0].message.content.trim();
-    content = content.replace(/```json\n?|\n?```/g, '');
+    
+    // Extract JSON from the response, removing any markdown or explanatory text
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No JSON found in OpenAI response');
+    }
 
-    const measurements = JSON.parse(content);
+    const measurements = JSON.parse(jsonMatch[0]);
     console.log('Parsed measurements:', measurements);
 
     if (!measurements.total_area) {
