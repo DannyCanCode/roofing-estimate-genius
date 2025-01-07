@@ -3,18 +3,17 @@ import { TextExtractor } from './extractors/text-extractor.ts';
 import { EagleViewParser } from './extractors/eagleview-parser.ts';
 import { MeasurementsValidator } from './validators/measurements-validator.ts';
 
+// Configure PDF.js for Node-like environment
+globalThis.window = globalThis;
+globalThis.document = {
+  currentScript: { src: '' },
+  createElement: () => ({ style: {} }),
+} as any;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Import specific version of pdf.js for Deno
-const pdfJS = await import('https://cdn.skypack.dev/pdfjs-dist@2.12.313/build/pdf.js');
-const pdfjsLib = pdfJS.default;
-
-// Set up the worker for pdf.js
-const pdfWorker = await import('https://cdn.skypack.dev/pdfjs-dist@2.12.313/build/pdf.worker.js');
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker.default;
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -36,66 +35,21 @@ serve(async (req) => {
 
     console.log('Processing PDF file of size:', arrayBuffer.byteLength);
 
-    // Load the PDF document
-    const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
-    const pdf = await loadingTask.promise;
+    const textExtractor = new TextExtractor();
+    const parser = new EagleViewParser();
+    const validator = new MeasurementsValidator();
 
-    let allText = '';
-    let debugText = '';
-    const extractionStatus: Record<string, boolean> = {};
+    const text = await textExtractor.extractText(uint8Array);
+    const measurements = parser.parseMeasurements(text);
 
-    // Process all pages
-    for (let i = 1; i <= pdf.numPages; i++) {
-      console.log('Processing page:', i);
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const pageText = content.items.map((item: any) => item.str).join(' ');
-      allText += pageText + ' ';
-      if (i === 1) debugText = pageText.substring(0, 500);
+    if (!validator.validate(measurements)) {
+      throw new Error('Invalid measurements extracted from PDF');
     }
 
-    // Define measurement patterns
-    const patterns = {
-      totalArea: /Total Area[^=\n]*=\s*([\d,]+)/i,
-      predominantPitch: /Predominant Pitch[^=\n]*=\s*(\d+)\/12/i,
-      suggestedWaste: /Suggested Waste[^=\n]*=\s*(\d+)/i,
-    };
-
-    // Extract measurements
-    const measurements: Record<string, any> = {};
-    for (const [key, pattern] of Object.entries(patterns)) {
-      const match = allText.match(pattern);
-      if (match) {
-        measurements[key] = match[1].replace(/,/g, '');
-        extractionStatus[key] = true;
-      }
-    }
-
-    // Convert measurements to the expected format
-    const processedData = {
-      measurements: {
-        total_area: parseFloat(measurements.totalArea || '0'),
-        predominant_pitch: measurements.predominantPitch ? `${measurements.predominantPitch}/12` : '4/12',
-        suggested_waste_percentage: parseInt(measurements.suggestedWaste || '15'),
-      },
-      extractionStatus,
-      debug: {
-        textSample: debugText,
-        pdfInfo: {
-          pageCount: pdf.numPages,
-          fileSize: arrayBuffer.byteLength,
-        }
-      }
-    };
-
-    console.log('Processed data:', processedData);
-
-    if (!processedData.measurements.total_area) {
-      throw new Error('Could not extract roof area from PDF');
-    }
+    console.log('Processed measurements:', measurements);
 
     return new Response(
-      JSON.stringify(processedData),
+      JSON.stringify({ measurements }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }

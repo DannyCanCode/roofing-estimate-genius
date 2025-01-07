@@ -1,25 +1,24 @@
-import { PageContent } from '../types/measurements.ts';
+import { getDocument, PDFDocumentProxy, PDFPageProxy } from 'https://cdn.skypack.dev/pdfjs-dist@2.12.313/build/pdf.js';
 
 export class TextExtractor {
-  async extractTextFromPage(page: any): Promise<PageContent> {
+  async extractText(pdfData: Uint8Array): Promise<string> {
     try {
-      const operations = page.node.Operations() || [];
-      let text = '';
+      const pdf = await getDocument({ data: pdfData }).promise;
+      let fullText = '';
       
-      for (const op of operations) {
-        if (typeof op === 'string') {
-          const cleanText = op.replace(/[()]/g, '').trim();
-          if (cleanText) {
-            text += cleanText + ' ';
-          }
-        }
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items
+          .map((item: any) => item.str)
+          .join(' ');
+        fullText += pageText + ' ';
       }
       
-      console.log('Extracted text from page:', text);
-      return { text };
+      return fullText;
     } catch (error) {
-      console.error('Error extracting text from page:', error);
-      return { text: '' };
+      console.error('Error extracting text:', error);
+      throw new Error(`Failed to extract text: ${error.message}`);
     }
   }
 }

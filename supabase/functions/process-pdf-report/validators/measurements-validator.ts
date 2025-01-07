@@ -1,74 +1,26 @@
-import { RoofMeasurements } from '../types/measurements.ts';
+interface Measurements {
+  total_area: number;
+  predominant_pitch: string;
+  suggested_waste_percentage: number;
+}
 
 export class MeasurementsValidator {
-  validate(measurements: RoofMeasurements): boolean {
-    console.log('Validating measurements:', measurements);
-
-    if (!this.validateTotalArea(measurements.total_area)) {
+  validate(measurements: Measurements): boolean {
+    if (!measurements.total_area || measurements.total_area <= 0) {
+      console.error('Invalid total area:', measurements.total_area);
       return false;
     }
 
-    if (!this.validatePitch(measurements.pitch)) {
+    if (!measurements.predominant_pitch) {
+      console.error('Missing predominant pitch');
       return false;
     }
 
-    // Additional validations that don't fail but warn
-    this.validatePenetrations(measurements);
-    this.validateLengths(measurements);
-
-    console.log('Measurements validation passed');
-    return true;
-  }
-
-  private validateTotalArea(area: number): boolean {
-    if (!area && area !== 0) {
-      console.error('Total area is missing');
+    if (typeof measurements.suggested_waste_percentage !== 'number') {
+      console.error('Invalid waste percentage:', measurements.suggested_waste_percentage);
       return false;
-    }
-
-    if (isNaN(area)) {
-      console.error('Invalid total area value:', area);
-      return false;
-    }
-
-    if (area <= 0) {
-      console.warn('Warning: Total area is zero or negative:', area);
     }
 
     return true;
-  }
-
-  private validatePitch(pitch: number): boolean {
-    if (pitch && isNaN(pitch)) {
-      console.error('Invalid pitch value:', pitch);
-      return false;
-    }
-
-    if (pitch && (pitch <= 0 || pitch > 45)) {
-      console.warn('Unusual pitch value:', pitch);
-    }
-
-    return true;
-  }
-
-  private validatePenetrations(measurements: RoofMeasurements): void {
-    if (measurements.total_penetrations && measurements.total_penetrations < 0) {
-      console.warn('Warning: Negative number of penetrations');
-    }
-  }
-
-  private validateLengths(measurements: RoofMeasurements): void {
-    const lengths = [
-      measurements.ridges_length,
-      measurements.valleys_length,
-      measurements.rakes_length,
-      measurements.eaves_length
-    ];
-
-    lengths.forEach(length => {
-      if (length && length < 0) {
-        console.warn('Warning: Negative length value:', length);
-      }
-    });
   }
 }
