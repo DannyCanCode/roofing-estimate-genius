@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/+esm";
 
 const corsHeaders = {
@@ -8,6 +7,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -15,6 +15,7 @@ serve(async (req) => {
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File;
+    console.log('Received file:', file?.name);
 
     if (!file) {
       throw new Error('No file provided');
@@ -22,6 +23,8 @@ serve(async (req) => {
 
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
+
+    console.log('Processing PDF file of size:', arrayBuffer.byteLength);
 
     const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
     const pdf = await loadingTask.promise;
@@ -32,6 +35,7 @@ serve(async (req) => {
 
     // Process all pages
     for (let i = 1; i <= pdf.numPages; i++) {
+      console.log('Processing page:', i);
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
       const pageText = content.items.map((item: any) => item.str).join(' ');
@@ -72,6 +76,8 @@ serve(async (req) => {
         }
       }
     };
+
+    console.log('Processed data:', processedData);
 
     if (!processedData.measurements.total_area) {
       throw new Error('Could not extract roof area from PDF');
