@@ -19,42 +19,42 @@ export const calculateEstimateItems = (measurements: any) => {
       description: `Roofing Material`,
       quantity: squares,
       unit: 'sq ft',
-      unit_price: PRICING.MATERIALS.shingles,
+      unitPrice: PRICING.MATERIALS.shingles,
       total: squares * PRICING.MATERIALS.shingles
     },
     {
       description: 'Underlayment',
       quantity: totalArea,
       unit: 'sq ft',
-      unit_price: 0.45,
+      unitPrice: 0.45,
       total: totalArea * 0.45
     },
     {
       description: 'Starter Strip',
       quantity: totalArea,
       unit: 'sq ft',
-      unit_price: 0.30,
+      unitPrice: 0.30,
       total: totalArea * 0.30
     },
     {
       description: 'Ridge Caps',
       quantity: totalArea,
       unit: 'sq ft',
-      unit_price: 0.25,
+      unitPrice: 0.25,
       total: totalArea * 0.25
     },
     {
       description: 'Nails/Fasteners',
       quantity: totalArea,
       unit: 'sq ft',
-      unit_price: 0.15,
+      unitPrice: 0.15,
       total: totalArea * 0.15
     },
     {
       description: `Labor for ${pitch}/12 pitch`,
       quantity: totalArea,
       unit: 'sq ft',
-      unit_price: laborRate,
+      unitPrice: laborRate,
       total: totalArea * laborRate
     }
   ];
