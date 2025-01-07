@@ -38,11 +38,11 @@ serve(async (req) => {
     
     const text = await textExtractor.extractText(uint8Array);
     console.log('Text extracted successfully, length:', text.length);
+    console.log('Extracted text sample:', text.substring(0, 500));
     
-    const measurements = textExtractor.extractMeasurements(text);
+    const measurements = await textExtractor.extractMeasurements(text);
     console.log('Parsed measurements:', measurements);
 
-    // Check if we found a valid total area
     if (!measurements.totalArea || measurements.totalArea <= 0) {
       return new Response(
         JSON.stringify({
