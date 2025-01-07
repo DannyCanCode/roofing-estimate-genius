@@ -1,4 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { TextExtractor } from './extractors/text-extractor.ts';
+import { EagleViewParser } from './extractors/eagleview-parser.ts';
+import { MeasurementsValidator } from './validators/measurements-validator.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
