@@ -8,6 +8,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Configure PDF.js worker
+const pdfjsWorker = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js');
+if (typeof window === 'undefined') {
+  // @ts-ignore - Deno environment
+  globalThis.window = globalThis;
+}
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -31,9 +39,6 @@ serve(async (req) => {
     
     // Read file as ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
-    
-    // Initialize PDF.js worker
-    pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
     
     // Load PDF document
     const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
