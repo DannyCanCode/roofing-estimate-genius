@@ -13,33 +13,33 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string
-          estimate_id: string
+          estimate_id: string | null
           id: string
-          item_type: string
           quantity: number
-          total_price: number
+          total: number
+          unit: string
           unit_price: number
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           description: string
-          estimate_id: string
+          estimate_id?: string | null
           id?: string
-          item_type: string
           quantity?: number
-          total_price?: number
+          total?: number
+          unit: string
           unit_price?: number
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           description?: string
-          estimate_id?: string
+          estimate_id?: string | null
           id?: string
-          item_type?: string
           quantity?: number
-          total_price?: number
+          total?: number
+          unit?: string
           unit_price?: number
           updated_at?: string | null
         }
@@ -55,139 +55,47 @@ export type Database = {
       }
       estimates: {
         Row: {
-          created_at: string | null
-          id: string
-          labor_cost: number
-          material_cost: number
-          notes: string | null
-          pitch: number | null
-          project_id: string
-          roof_type: string
-          status: string | null
-          total_area: number
-          total_cost: number
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          labor_cost?: number
-          material_cost?: number
-          notes?: string | null
-          pitch?: number | null
-          project_id: string
-          roof_type: string
-          status?: string | null
-          total_area: number
-          total_cost?: number
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          labor_cost?: number
-          material_cost?: number
-          notes?: string | null
-          pitch?: number | null
-          project_id?: string
-          roof_type?: string
-          status?: string | null
-          total_area?: number
-          total_cost?: number
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "estimates_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
           address: string | null
-          company_name: string | null
+          amount: number
           created_at: string | null
-          email: string
-          full_name: string | null
+          customer_name: string
+          date: string | null
           id: string
-          phone: string | null
-          role: string | null
+          report_id: string | null
+          roofing_type: string
+          status: string
           updated_at: string | null
         }
         Insert: {
           address?: string | null
-          company_name?: string | null
+          amount?: number
           created_at?: string | null
-          email: string
-          full_name?: string | null
-          id: string
-          phone?: string | null
-          role?: string | null
+          customer_name: string
+          date?: string | null
+          id?: string
+          report_id?: string | null
+          roofing_type: string
+          status?: string
           updated_at?: string | null
         }
         Update: {
           address?: string | null
-          company_name?: string | null
+          amount?: number
           created_at?: string | null
-          email?: string
-          full_name?: string | null
+          customer_name?: string
+          date?: string | null
           id?: string
-          phone?: string | null
-          role?: string | null
+          report_id?: string | null
+          roofing_type?: string
+          status?: string
           updated_at?: string | null
-        }
-        Relationships: []
-      }
-      projects: {
-        Row: {
-          address: string
-          city: string | null
-          created_at: string | null
-          id: string
-          name: string
-          notes: string | null
-          state: string | null
-          status: string | null
-          updated_at: string | null
-          user_id: string
-          zip_code: string | null
-        }
-        Insert: {
-          address: string
-          city?: string | null
-          created_at?: string | null
-          id?: string
-          name: string
-          notes?: string | null
-          state?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id: string
-          zip_code?: string | null
-        }
-        Update: {
-          address?: string
-          city?: string | null
-          created_at?: string | null
-          id?: string
-          name?: string
-          notes?: string | null
-          state?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string
-          zip_code?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "projects_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "estimates_report_id_fkey"
+            columns: ["report_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "reports"
             referencedColumns: ["id"]
           },
         ]
@@ -198,39 +106,33 @@ export type Database = {
           error_message: string | null
           file_path: string
           id: string
-          metadata: Json
+          metadata: Json | null
           original_filename: string
-          page_count: number | null
           processed_text: string | null
           status: string
           updated_at: string
-          user_id: string | null
         }
         Insert: {
           created_at?: string
           error_message?: string | null
           file_path: string
           id?: string
-          metadata: Json
+          metadata?: Json | null
           original_filename: string
-          page_count?: number | null
           processed_text?: string | null
           status?: string
           updated_at?: string
-          user_id?: string | null
         }
         Update: {
           created_at?: string
           error_message?: string | null
           file_path?: string
           id?: string
-          metadata?: Json
+          metadata?: Json | null
           original_filename?: string
-          page_count?: number | null
           processed_text?: string | null
           status?: string
           updated_at?: string
-          user_id?: string | null
         }
         Relationships: []
       }

@@ -1,22 +1,14 @@
 export interface Measurements {
+  [key: string]: any;
   total_area?: number;
-  total_roof_facets?: number;
-  predominant_pitch?: number;
+  predominant_pitch?: string;
+  suggested_waste_percentage?: number;
   number_of_stories?: number;
   ridges?: { length: number; count: number };
   hips?: { length: number; count: number };
   valleys?: { length: number; count: number };
   rakes?: { length: number; count: number };
   eaves?: { length: number; count: number };
-  total_penetrations?: number;
-  total_penetrations_area?: number;
-  waste_table?: Array<{
-    percentage: number;
-    area: number;
-    squares: number;
-    is_suggested: boolean;
-  }>;
-  suggested_waste_percentage?: number;
 }
 
 export interface DebugInfo {
