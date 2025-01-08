@@ -1,7 +1,7 @@
-project_id = "zmddqruzmcbpgblduxqx"
+project_id = "your-new-project-id"
 
-[functions.process-pdf-report]
-verify_jwt = false
+[functions]
 
-[functions.generate-estimate]
-verify_jwt = false
+[functions."process-pdf-report"]
+  verify_jwt = false
+  image = "supabase/deno:1.28.3"

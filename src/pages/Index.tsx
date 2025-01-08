@@ -5,6 +5,7 @@ import { RecentEstimates } from '@/components/RecentEstimates';
 import { EstimateCharts } from '@/components/EstimateCharts';
 import { EstimateCalculatorForm } from '@/components/EstimateCalculatorForm';
 import EstimateGenerator from '@/components/EstimateGenerator';
+import { PDFUploader } from '@/components/PDFUploader';
 
 export default function Index() {
   return (
@@ -15,6 +16,10 @@ export default function Index() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <DashboardMetrics />
+          </div>
+
+          <div className="space-y-6">
+            <PDFUploader />
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
