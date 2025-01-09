@@ -1,3 +1,9 @@
+export interface WasteTableEntry {
+  percentage: number;
+  area: number;
+  is_suggested: boolean;
+}
+
 export interface Measurements {
   [key: string]: any;
   total_area?: number;
@@ -9,12 +15,13 @@ export interface Measurements {
   valleys?: { length: number; count: number };
   rakes?: { length: number; count: number };
   eaves?: { length: number; count: number };
+  waste_table?: WasteTableEntry[];
 }
 
 export interface DebugInfo {
   matched_patterns: Record<string, boolean>;
   text_samples: Record<string, string>;
-  waste_table_error?: string;
+  validation_errors: Record<string, string>;
 }
 
 export interface ExtractionResult {

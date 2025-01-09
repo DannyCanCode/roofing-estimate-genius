@@ -1,25 +1,48 @@
 // Import necessary modules and types
-import { RoofMeasurements } from '../types/estimate';
+import { ProcessedPdfData } from '../types/estimate';
+import { supabase } from '@/integrations/supabase/client';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const PROCESS_PDF_URL = import.meta.env.VITE_PROCESS_PDF_URL;
 
-export async function processPdfReport(fileUrl: string): Promise<RoofMeasurements> {
+export async function processPdfReport(file: File): Promise<ProcessedPdfData> {
   try {
-    const response = await fetch(`${API_URL}/api/process-pdf`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ file_url: fileUrl }),
-    });
+    console.log('Processing PDF file:', file.name);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to process PDF report');
+    // Upload file to storage first
+    const timestamp = new Date().getTime();
+    const fileName = `${timestamp}-${file.name}`;
+    const filePath = `reports/${fileName}`;
+
+    // Upload to Supabase storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('eagleview-reports')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error(`Failed to upload file: ${uploadError.message}`);
     }
 
-    const data = await response.json();
-    return data;
+    // Get the public URL
+    const { data: urlData } = await supabase.storage
+      .from('eagleview-reports')
+      .getPublicUrl(filePath);
+
+    if (!urlData?.publicUrl) {
+      throw new Error('Failed to get public URL');
+    }
+
+    // Process using Edge Function
+    const { data, error } = await supabase.functions.invoke('process-pdf', {
+      body: { fileUrl: urlData.publicUrl }
+    });
+
+    if (error) {
+      console.error('Processing error:', error);
+      throw new Error(error.message);
+    }
+
+    return data as ProcessedPdfData;
   } catch (error) {
     console.error('Error processing PDF report:', error);
     throw error;

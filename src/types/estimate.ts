@@ -8,30 +8,37 @@ export interface RoofFacet {
   area: number;
 }
 
+export interface Measurement {
+  length: number;
+  count: number;
+}
+
+export interface WasteTableEntry {
+  percentage: number;
+  area: number;
+  is_suggested: boolean;
+}
+
 export interface RoofMeasurements {
   total_area: number;
   predominant_pitch: string;
-  ridges: number;
-  hips: number;
-  valleys: number;
-  rakes: number;
-  eaves: number;
-  flashing: number;
-  step_flashing: number;
-  pitch_details: PitchDetail[];
-  facets: RoofFacet[];
-  suggested_waste_percentage: number;
+  number_of_stories?: number;
+  suggested_waste_percentage?: number;
+  ridges?: Measurement;
+  hips?: Measurement;
+  valleys?: Measurement;
+  rakes?: Measurement;
+  eaves?: Measurement;
+  waste_table?: WasteTableEntry[];
 }
 
 export interface ProcessedPdfData {
-  measurements: {
-    total_area: number;
-    predominant_pitch?: string;
-    suggested_waste_percentage?: number;
-    // ... other measurement fields
+  measurements: RoofMeasurements;
+  debugInfo?: {
+    matched_patterns: Record<string, boolean>;
+    text_samples: Record<string, string>;
+    validation_errors: Record<string, string>;
   };
-  error?: string;
-  debug?: any;
 }
 
 export interface Material {
