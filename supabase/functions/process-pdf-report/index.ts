@@ -1,131 +1,169 @@
-// deno-lint-ignore-file no-explicit-any
+/// <reference lib="deno.ns" />
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { PDFDocument } from "https://deno.land/x/pdf@v0.3.0/mod.ts";
-import { EagleViewParser } from "./extractors/eagleview-parser.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.1';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, Authorization, Content-Type, X-Client-Info",
-  "Access-Control-Max-Age": "86400",
-  "Access-Control-Expose-Headers": "content-length, content-type",
+  "Access-Control-Allow-Headers": "*",
+  "Content-Type": "application/json"
 };
 
-serve(async (req: Request) => {
+function log(message: string, data?: any) {
+  const timestamp = new Date().toISOString();
+  const logMessage = data ? `${message} ${JSON.stringify(data, null, 2)}` : message;
+  console.log(`[${timestamp}] ${logMessage}`);
+}
+
+function extractPathFromUrl(url: string): string {
   try {
-    // Handle CORS preflight requests
-    if (req.method === "OPTIONS") {
-      return new Response(null, {
-        status: 204,
-        headers: {
-          ...corsHeaders,
-          "Access-Control-Allow-Origin": req.headers.get("origin") || "*",
-        }
-      });
+    // Parse the URL
+    const parsedUrl = new URL(url);
+    // Split the pathname by segments
+    const segments = parsedUrl.pathname.split('/');
+    // Find the index of 'public' and get everything after it
+    const publicIndex = segments.indexOf('public');
+    if (publicIndex === -1) {
+      throw new Error('Invalid storage URL format');
     }
+    // Join the remaining segments
+    return segments.slice(publicIndex + 2).join('/');
+  } catch (error) {
+    log("Error extracting path", { error, url });
+    throw new Error(`Invalid file URL format: ${error.message}`);
+  }
+}
 
-    if (req.method !== "POST") {
-      return new Response("Method Not Allowed", {
-        status: 405,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
-    console.log("Starting PDF processing...");
+  try {
+    const { fileUrl } = await req.json();
+    log("Received request", { fileUrl });
     
-    let body;
-    try {
-      body = await req.json();
-    } catch (e) {
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON body" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const { fileUrl } = body;
-
     if (!fileUrl) {
-      console.error("No file URL provided");
       return new Response(
-        JSON.stringify({ error: "No file URL provided" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Missing fileUrl in request" }),
+        { status: 400, headers: corsHeaders }
       );
     }
 
-    console.log("Fetching PDF from URL:", fileUrl);
-    const response = await fetch(fileUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch PDF: ${response.statusText}`);
+    // Extract the path from the URL
+    const filePath = extractPathFromUrl(fileUrl);
+    log("Extracted file path", { filePath });
+
+    // Initialize Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        }
+      }
+    );
+
+    log("Fetching file from storage", { filePath });
+
+    // Download file from storage
+    const { data: fileData, error: downloadError } = await supabaseClient
+      .storage
+      .from('eagleview-reports')
+      .download(filePath);
+
+    if (downloadError) {
+      log("Error downloading file", { error: downloadError });
+      throw new Error(`Failed to download file: ${downloadError.message}`);
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-
-    console.log("Loading PDF with PDFDocument...");
-    const pdfDoc = await PDFDocument.load(new Uint8Array(arrayBuffer));
-
-    let fullText = "";
-
-    console.log(`PDF loaded, total pages: ${pdfDoc.getPageCount()}`);
-
-    for (let pageNum = 0; pageNum < pdfDoc.getPageCount(); pageNum++) {
-      const page = pdfDoc.getPage(pageNum);
-      const textContent = await page.getTextContent();
-
-      const pageText = textContent.items.map((item: any) => item.str).join(" ");
-
-      fullText += pageText + "\n";
+    if (!fileData) {
+      throw new Error("No file data received");
     }
 
-    console.log("Extracted text length:", fullText.length);
-    console.log("Sample text:", fullText.substring(0, 500));
+    log("File downloaded successfully", { size: fileData.size });
 
-    const parser = new EagleViewParser();
-    const measurements = parser.parseMeasurements(fullText);
-    console.log("Parsed measurements:", measurements);
+    // Convert blob to text
+    const text = await fileData.text();
+    log("Text extracted", { 
+      length: text.length,
+      sample: text.substring(0, 200)
+    });
+
+    // Extract measurements using regex
+    const measurements = {
+      total_area: 0,
+      predominant_pitch: "4/12",
+      suggested_waste_percentage: 15
+    };
+
+    // Look for total area
+    const areaPatterns = [
+      /Total\s+Area[:\s]+(\d+(?:,\d{3})*(?:\.\d+)?)/i,
+      /Total\s+Roof\s+Area[:\s]+(\d+(?:,\d{3})*(?:\.\d+)?)/i,
+      /(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:sq\.?\s*ft\.?|SF)\b/i
+    ];
+
+    for (const pattern of areaPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const value = parseFloat(match[1].replace(/,/g, ''));
+        if (!isNaN(value) && value > 0) {
+          measurements.total_area = value;
+          log("Found total area", { value, pattern: pattern.toString() });
+          break;
+        }
+      }
+    }
+
+    // Look for pitch
+    const pitchPatterns = [
+      /Predominant\s+Pitch[:\s]+(\d+\/\d+)/i,
+      /Main\s+Pitch[:\s]+(\d+\/\d+)/i,
+      /Pitch[:\s]+(\d+\/\d+)/i
+    ];
+
+    for (const pattern of pitchPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        measurements.predominant_pitch = match[1];
+        log("Found pitch", { value: match[1], pattern: pattern.toString() });
+        break;
+      }
+    }
 
     if (!measurements.total_area) {
-      console.error("No total area found in measurements");
+      log("No total area found in text");
       return new Response(
-        JSON.stringify({
-          error:
-            "Could not extract roof area from PDF. Please ensure this is an EagleView report.",
+        JSON.stringify({ 
+          error: "Could not find total area in PDF",
+          details: "Please ensure this is a valid EagleView report"
         }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: corsHeaders }
       );
     }
 
+    log("Measurements extracted successfully", { measurements });
     return new Response(
-      JSON.stringify({
-        measurements,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ measurements }),
+      { headers: corsHeaders }
     );
+
   } catch (error) {
-    console.error("Error processing request:", error);
+    log("Error processing PDF", { 
+      error: error.message,
+      stack: error.stack
+    });
     return new Response(
-      JSON.stringify({
-        error: error.message || "Unknown error processing request",
-        details: error.toString(),
-        stack: error.stack,
+      JSON.stringify({ 
+        error: "Failed to process PDF",
+        details: error.message 
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: corsHeaders }
     );
   }
-});
+}); 

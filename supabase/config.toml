@@ -1,7 +1,5 @@
-project_id = "your-new-project-id"
+project_id = "tkglycdrejpzwgxfneat"
 
 [functions]
-
-[functions."process-pdf-report"]
-  verify_jwt = false
-  image = "supabase/deno:1.28.3"
+[functions.process-pdf-report]
+verify_jwt = false

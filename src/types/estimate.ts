@@ -1,10 +1,26 @@
+export interface PitchDetail {
+  pitch: string;
+  area: number;
+}
+
+export interface RoofFacet {
+  number: number;
+  area: number;
+}
+
 export interface RoofMeasurements {
-  totalArea: number;
-  pitchBreakdown: {
-    pitch: string;
-    area: number;
-  }[];
-  suggestedWaste?: number;
+  total_area: number;
+  predominant_pitch: string;
+  ridges: number;
+  hips: number;
+  valleys: number;
+  rakes: number;
+  eaves: number;
+  flashing: number;
+  step_flashing: number;
+  pitch_details: PitchDetail[];
+  facets: RoofFacet[];
+  suggested_waste_percentage: number;
 }
 
 export interface ProcessedPdfData {

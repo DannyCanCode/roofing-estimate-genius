@@ -1,139 +1,100 @@
-import { useState } from 'react'
+import React from 'react';
+import { RoofMeasurements } from '../types/estimate';
 
-interface PricingDetails {
-  totalSquares: number
-  flatSquares: number
-  wasteFactor: number
-  laborRate: number
-  stories: number
+interface Props {
+  measurements: RoofMeasurements;
 }
 
-interface CalculatedPricing {
-  shingles: number
-  underlayment: number
-  iceAndWater: number
-  flatRoofMaterials: number
-  slopedRoofLabor: number
-  flatRoofLabor: number
-  twoStoryCharge: number
-  tripCharge: number
-  dumpster: number
-  permitsAndInspections: number
-  dripEdge: number
-  plumbingBoots: number
-  nails: number
-  subtotal: number
-  profitAmount: number
-  total: number
-  details: PricingDetails
-}
-
-export function EstimateCalculator({ pricing }: { pricing: CalculatedPricing }) {
-  const [showDetails, setShowDetails] = useState(false)
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
-  }
-
+export const EstimateCalculator: React.FC<Props> = ({ measurements }) => {
   return (
-    <div className="bg-white shadow-lg rounded-lg p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Estimate Breakdown</h2>
-        <button
-          onClick={() => setShowDetails(!showDetails)}
-          className="text-blue-600 hover:text-blue-800"
-        >
-          {showDetails ? 'Hide Details' : 'Show Details'}
-        </button>
+    <div className="bg-white p-6 rounded-lg shadow-lg">
+      <h2 className="text-2xl font-bold mb-4">Roof Measurements</h2>
+      
+      {/* Main Measurements */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="p-4 bg-gray-50 rounded">
+          <h3 className="font-semibold text-lg mb-2">Total Area</h3>
+          <p className="text-xl">{measurements.total_area.toLocaleString()} sq ft</p>
+        </div>
+        <div className="p-4 bg-gray-50 rounded">
+          <h3 className="font-semibold text-lg mb-2">Predominant Pitch</h3>
+          <p className="text-xl">{measurements.predominant_pitch}</p>
+        </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Project Details */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-          <div>
-            <div className="text-sm text-gray-500">Total Squares</div>
-            <div className="font-semibold">{pricing.details.totalSquares}</div>
+      {/* Length Measurements */}
+      <div className="mb-6">
+        <h3 className="font-semibold text-lg mb-3">Length Measurements</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-3 bg-gray-50 rounded">
+            <p className="font-medium">Ridges</p>
+            <p>{measurements.ridges} ft</p>
           </div>
-          <div>
-            <div className="text-sm text-gray-500">Flat Squares</div>
-            <div className="font-semibold">{pricing.details.flatSquares}</div>
+          <div className="p-3 bg-gray-50 rounded">
+            <p className="font-medium">Hips</p>
+            <p>{measurements.hips} ft</p>
           </div>
-          <div>
-            <div className="text-sm text-gray-500">Waste Factor</div>
-            <div className="font-semibold">{pricing.details.wasteFactor}%</div>
+          <div className="p-3 bg-gray-50 rounded">
+            <p className="font-medium">Valleys</p>
+            <p>{measurements.valleys} ft</p>
           </div>
-          <div>
-            <div className="text-sm text-gray-500">Stories</div>
-            <div className="font-semibold">{pricing.details.stories}</div>
+          <div className="p-3 bg-gray-50 rounded">
+            <p className="font-medium">Rakes</p>
+            <p>{measurements.rakes} ft</p>
           </div>
-        </div>
-
-        {showDetails && (
-          <>
-            {/* Materials */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Materials</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="text-sm">Shingles</div>
-                <div className="text-right">{formatCurrency(pricing.shingles)}</div>
-                <div className="text-sm">Underlayment</div>
-                <div className="text-right">{formatCurrency(pricing.underlayment)}</div>
-                <div className="text-sm">Ice & Water Shield</div>
-                <div className="text-right">{formatCurrency(pricing.iceAndWater)}</div>
-                <div className="text-sm">Flat Roof Materials</div>
-                <div className="text-right">{formatCurrency(pricing.flatRoofMaterials)}</div>
-                <div className="text-sm">Drip Edge</div>
-                <div className="text-right">{formatCurrency(pricing.dripEdge)}</div>
-                <div className="text-sm">Plumbing Boots</div>
-                <div className="text-right">{formatCurrency(pricing.plumbingBoots)}</div>
-                <div className="text-sm">Nails</div>
-                <div className="text-right">{formatCurrency(pricing.nails)}</div>
-              </div>
-            </div>
-
-            {/* Labor */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Labor</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="text-sm">Sloped Roof Labor</div>
-                <div className="text-right">{formatCurrency(pricing.slopedRoofLabor)}</div>
-                <div className="text-sm">Flat Roof Labor</div>
-                <div className="text-right">{formatCurrency(pricing.flatRoofLabor)}</div>
-                <div className="text-sm">Two Story Charge</div>
-                <div className="text-right">{formatCurrency(pricing.twoStoryCharge)}</div>
-              </div>
-            </div>
-
-            {/* Additional Charges */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Additional Charges</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="text-sm">Trip Charge</div>
-                <div className="text-right">{formatCurrency(pricing.tripCharge)}</div>
-                <div className="text-sm">Dumpster</div>
-                <div className="text-right">{formatCurrency(pricing.dumpster)}</div>
-                <div className="text-sm">Permits & Inspections</div>
-                <div className="text-right">{formatCurrency(pricing.permitsAndInspections)}</div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Totals */}
-        <div className="border-t pt-4 space-y-2">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="text-sm font-medium">Subtotal</div>
-            <div className="text-right">{formatCurrency(pricing.subtotal)}</div>
-            <div className="text-sm font-medium">Profit</div>
-            <div className="text-right">{formatCurrency(pricing.profitAmount)}</div>
-            <div className="text-lg font-bold">Total</div>
-            <div className="text-right text-lg font-bold">{formatCurrency(pricing.total)}</div>
+          <div className="p-3 bg-gray-50 rounded">
+            <p className="font-medium">Eaves</p>
+            <p>{measurements.eaves} ft</p>
+          </div>
+          <div className="p-3 bg-gray-50 rounded">
+            <p className="font-medium">Flashing</p>
+            <p>{measurements.flashing} ft</p>
+          </div>
+          <div className="p-3 bg-gray-50 rounded">
+            <p className="font-medium">Step Flashing</p>
+            <p>{measurements.step_flashing} ft</p>
           </div>
         </div>
+      </div>
+
+      {/* Pitch Details */}
+      {measurements.pitch_details.length > 0 && (
+        <div className="mb-6">
+          <h3 className="font-semibold text-lg mb-3">Pitch Breakdown</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {measurements.pitch_details.map((detail, index) => (
+              <div key={index} className="p-3 bg-gray-50 rounded">
+                <p className="font-medium">{detail.pitch} pitch</p>
+                <p>{detail.area.toLocaleString()} sq ft</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Facets */}
+      {measurements.facets.length > 0 && (
+        <div className="mb-6">
+          <h3 className="font-semibold text-lg mb-3">Roof Sections</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {measurements.facets.map((facet) => (
+              <div key={facet.number} className="p-3 bg-gray-50 rounded">
+                <p className="font-medium">Section {facet.number}</p>
+                <p>{facet.area.toLocaleString()} sq ft</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Waste Factor */}
+      <div className="mt-6 p-4 bg-blue-50 rounded">
+        <h3 className="font-semibold text-lg mb-2">Suggested Waste Factor</h3>
+        <p className="text-xl">{measurements.suggested_waste_percentage}%</p>
+        <p className="text-sm text-gray-600 mt-1">
+          Additional materials needed to account for waste during installation
+        </p>
       </div>
     </div>
-  )
-} 
+  );
+}; 
