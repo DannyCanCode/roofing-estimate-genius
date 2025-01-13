@@ -1,0 +1,9 @@
+fastapi==0.109.2
+uvicorn==0.27.1
+python-multipart==0.0.9
+PyMuPDF==1.23.26
+camelot-py==0.11.0
+opencv-python==4.9.0.80
+pandas==2.2.0
+numpy==1.26.4
+ghostscript==0.7 

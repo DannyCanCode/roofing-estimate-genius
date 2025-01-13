@@ -1,103 +1,76 @@
-// Import necessary modules and types
-import { useState } from 'react';
-import { Card } from './ui/card';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Button } from './ui/button';
-import { Loader2 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { processPdfReport } from '../services/api';
+import React, { useState, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RoofMeasurements } from '@/types/estimate';
+import { processPdfFile } from '@/services/pdfProcessingService';
 
-export function PDFUploader() {
-  const [status, setStatus] = useState('');
-  const [result, setResult] = useState<any>(null);
+interface PDFUploaderProps {
+  onProcessed: (data: RoofMeasurements) => void;
+  profitMargin?: number;
+  roofingType?: string;
+}
+
+export function PDFUploader({ onProcessed, profitMargin = 0.3, roofingType = 'asphalt' }: PDFUploaderProps) {
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
 
-    if (!file.type.includes('pdf')) {
+    const file = acceptedFiles[0];
+    if (file.type !== 'application/pdf') {
       setError('Please upload a PDF file');
       return;
     }
 
-    setStatus('Processing PDF...');
+    setIsUploading(true);
     setError(null);
-    setIsLoading(true);
-    setResult(null);
 
     try {
-      console.log('Processing PDF file:', file.name);
-      const measurements = await processPdfReport(file);
-
-      if (!measurements || !measurements.totalArea) {
-        setError('Could not extract measurements from PDF. Please make sure you uploaded a valid EagleView report.');
-        setStatus('Error processing PDF');
-      } else {
-        setResult({ measurements });
-        setStatus('PDF processed successfully');
-      }
-    } catch (error: any) {
-      console.error('Error processing PDF:', error);
-      setError(error.message || 'Error processing PDF');
-      setStatus('Error processing PDF');
+      const data = await processPdfFile(file, profitMargin, roofingType);
+      onProcessed(data.measurements);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to process PDF. Please try again.';
+      setError(errorMessage);
+      console.error('Error processing PDF:', err);
     } finally {
-      setIsLoading(false);
+      setIsUploading(false);
     }
-  };
+  }, [onProcessed, profitMargin, roofingType]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+    },
+    multiple: false,
+  });
 
   return (
-    <Card className="p-6">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Upload EagleView Report</h2>
+    <Card>
+      <CardHeader>
+        <CardTitle>Upload EagleView PDF</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div
+          {...getRootProps()}
+          className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+            isDragActive ? 'border-primary bg-primary/10' : 'border-gray-300 hover:border-primary'
+          }`}
+        >
+          <input {...getInputProps()} />
+          {isUploading ? (
+            <p className="text-gray-600">Processing PDF...</p>
+          ) : isDragActive ? (
+            <p className="text-primary">Drop the PDF here</p>
+          ) : (
+            <p className="text-gray-600">
+              Drag and drop an EagleView PDF here, or click to select
+            </p>
+          )}
+          {error && <p className="text-red-500 mt-2">{error}</p>}
         </div>
-        
-        <div className="grid w-full max-w-sm items-center gap-1.5">
-          <Label htmlFor="pdf-upload">Upload PDF</Label>
-          <div className="flex gap-2">
-            <Input
-              id="pdf-upload"
-              type="file"
-              accept=".pdf"
-              onChange={handleUpload}
-              disabled={isLoading}
-              className="cursor-pointer"
-            />
-            {isLoading && (
-              <Button disabled>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {error && (
-          <Alert variant="destructive">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {status && !error && (
-          <Alert>
-            <AlertTitle>Status</AlertTitle>
-            <AlertDescription>{status}</AlertDescription>
-          </Alert>
-        )}
-
-        {result && (
-          <div className="mt-4 space-y-2">
-            <h3 className="text-lg font-semibold">Extracted Measurements</h3>
-            <pre className="bg-gray-100 p-4 rounded-lg overflow-auto">
-              {JSON.stringify(result.measurements, null, 2)}
-            </pre>
-          </div>
-        )}
-      </div>
+      </CardContent>
     </Card>
   );
-}
+} 

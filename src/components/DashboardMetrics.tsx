@@ -1,69 +1,55 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, FileText, CheckCircle, Clock } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import React from 'react'
+import { FileText, DollarSign, Clock, TrendingUp } from 'lucide-react'
 
-interface DashboardMetricsProps {
-  isLoading?: boolean;
-}
-
-export function DashboardMetrics({ isLoading = false }: DashboardMetricsProps) {
-  if (isLoading) {
-    return (
-      <>
-        {[1, 2, 3].map((i) => (
-          <Card key={i}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <Skeleton className="h-4 w-[120px]" />
-              <Skeleton className="h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-[100px] mb-2" />
-              <Skeleton className="h-4 w-[140px]" />
-            </CardContent>
-          </Card>
-        ))}
-      </>
-    );
-  }
-
+export function DashboardMetrics() {
   return (
-    <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Estimates</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">$0.00</div>
-          <p className="text-xs text-muted-foreground">
-            No estimates yet
-          </p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pending Estimates</CardTitle>
-          <Clock className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">0</div>
-          <p className="text-xs text-muted-foreground">
-            No pending estimates
-          </p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Approved Estimates</CardTitle>
-          <CheckCircle className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">0</div>
-          <p className="text-xs text-muted-foreground">
-            No approved estimates
-          </p>
-        </CardContent>
-      </Card>
-    </>
-  );
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <MetricCard
+        title="Total Estimates"
+        value="156"
+        icon={<FileText className="h-5 w-5" />}
+        trend="+12% from last month"
+      />
+      <MetricCard
+        title="Average Value"
+        value="$12,450"
+        icon={<DollarSign className="h-5 w-5" />}
+        trend="+5% from last month"
+      />
+      <MetricCard
+        title="Processing Time"
+        value="2.5 min"
+        icon={<Clock className="h-5 w-5" />}
+        trend="-30% from last month"
+      />
+      <MetricCard
+        title="Conversion Rate"
+        value="68%"
+        icon={<TrendingUp className="h-5 w-5" />}
+        trend="+8% from last month"
+      />
+    </div>
+  )
 }
+
+interface MetricCardProps {
+  title: string
+  value: string
+  icon: React.ReactNode
+  trend: string
+}
+
+function MetricCard({ title, value, icon, trend }: MetricCardProps) {
+  return (
+    <div className="p-6 bg-white rounded-lg shadow">
+      <div className="flex items-center justify-between">
+        <div className="text-gray-600">{icon}</div>
+        <div className="text-sm text-green-600">{trend}</div>
+      </div>
+      <div className="mt-4">
+        <h3 className="text-lg font-semibold">{value}</h3>
+        <p className="text-sm text-gray-600">{title}</p>
+      </div>
+    </div>
+  )
+} 

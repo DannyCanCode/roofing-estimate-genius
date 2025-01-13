@@ -1,14 +1,15 @@
-import React from 'react';
+import React from 'react'
+import { RocketIcon } from 'lucide-react'
 
-const Header = () => (
-  <div>
-    <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-      3MG Roofing Dashboard
-    </h1>
-    <p className="mt-2 text-sm text-gray-500">
-      Generate and manage roofing estimates
-    </p>
-  </div>
-);
-
-export default Header;
+export function Header() {
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 max-w-screen-2xl items-center">
+        <div className="flex items-center space-x-2">
+          <RocketIcon className="h-6 w-6" />
+          <span className="font-bold">3MG Roofing</span>
+        </div>
+      </div>
+    </header>
+  )
+} 

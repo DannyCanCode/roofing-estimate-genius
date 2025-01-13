@@ -1,87 +1,56 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { EstimatesTable } from "./estimates/EstimatesTable";
+import React from 'react'
+import { FileText, ArrowRight } from 'lucide-react'
 
-// Start with empty array instead of example data
-const recentEstimates: {
-  id: number;
-  customerName: string;
-  amount: number;
-  status: string;
-  date: string;
-  roofingType: string;
-  address: string;
-}[] = [];
-
-type Status = "All" | "Pending" | "Approved" | "Completed" | "Rejected";
-type SortField = "date" | "amount" | "customerName";
+const recentEstimates = [
+  {
+    id: 1,
+    address: '123 Main St, Austin, TX',
+    date: '2024-01-09',
+    status: 'Approved',
+    amount: '$12,450'
+  },
+  {
+    id: 2,
+    address: '456 Oak Ave, Austin, TX',
+    date: '2024-01-08',
+    status: 'Pending',
+    amount: '$9,850'
+  },
+  {
+    id: 3,
+    address: '789 Pine Rd, Austin, TX',
+    date: '2024-01-07',
+    status: 'Approved',
+    amount: '$15,200'
+  }
+]
 
 export function RecentEstimates() {
-  const [statusFilter, setStatusFilter] = useState<Status>("All");
-  const [sortField, setSortField] = useState<SortField>("date");
-  const [sortAsc, setSortAsc] = useState(false);
-
-  const filteredAndSortedEstimates = recentEstimates
-    .filter((estimate) =>
-      statusFilter === "All" ? true : estimate.status === statusFilter
-    )
-    .sort((a, b) => {
-      const multiplier = sortAsc ? 1 : -1;
-      if (sortField === "date") {
-        return (
-          multiplier * (new Date(b.date).getTime() - new Date(a.date).getTime())
-        );
-      }
-      if (sortField === "amount") {
-        return multiplier * (b.amount - a.amount);
-      }
-      return multiplier * a.customerName.localeCompare(b.customerName);
-    });
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortAsc(!sortAsc);
-    } else {
-      setSortField(field);
-      setSortAsc(true);
-    }
-  };
-
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Recent Estimates</CardTitle>
-        <Select
-          value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as Status)}
+    <div className="space-y-4">
+      {recentEstimates.map((estimate) => (
+        <div
+          key={estimate.id}
+          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="All">All Status</SelectItem>
-            <SelectItem value="Pending">Pending</SelectItem>
-            <SelectItem value="Approved">Approved</SelectItem>
-            <SelectItem value="Completed">Completed</SelectItem>
-            <SelectItem value="Rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
-      </CardHeader>
-      <CardContent>
-        <EstimatesTable
-          estimates={filteredAndSortedEstimates}
-          sortField={sortField}
-          sortAsc={sortAsc}
-          onSort={handleSort}
-        />
-      </CardContent>
-    </Card>
-  );
-}
+          <div className="flex items-center space-x-4">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <FileText className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-medium">{estimate.address}</h3>
+              <p className="text-sm text-gray-600">{estimate.date}</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div>
+              <p className="text-sm font-medium">{estimate.amount}</p>
+              <p className="text-sm text-gray-600">{estimate.status}</p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-gray-400" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+} 
